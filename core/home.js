@@ -102,6 +102,18 @@ K.views.timeup=a=>{a.innerHTML=`<div class="screen result"><div style="flex:1"><
 /* 부모님 설정 */
 const RS0='<button class="btn ghost" id="r1">학습 기록만 지우기</button><button class="btn ghost" id="ra">완전히 처음으로</button>';
 const RSQ=(id,msg)=>`<p style="width:100%;margin:0"><b>${msg}</b></p><button class="btn" id="${id}" style="background:var(--red);box-shadow:0 6px 0 #C94A43">정말 지울게요</button><button class="btn ghost" id="r3">취소</button>`;
+/* 기록 옮기기: 이 기기의 모든 기록을 파일 하나로 */
+function exportData(){const d=new Date(),stamp=`${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}`;
+  const name=`kongkong-${(S.parent.name||'record')}-${stamp}.json`;const blob=new Blob([JSON.stringify({app:'kongkong',v:1,at:Date.now(),data:S})],{type:'application/json'});
+  const file=new File([blob],name,{type:'application/json'});
+  if(navigator.canShare&&navigator.canShare({files:[file]}))navigator.share({files:[file],title:'콩콩마을 기록'}).catch(err=>{if(err&&err.name!=='AbortError')dl()});else dl();
+  function dl(){const u=URL.createObjectURL(blob);const a=document.createElement('a');a.href=u;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),2000);K.toast('기록 파일을 저장했어요. 카톡으로 보내 주세요')}}
+function importData(f){const rd=new FileReader();rd.onload=()=>{let o;try{o=JSON.parse(rd.result)}catch(e){K.toast('콩콩마을 기록 파일이 아니에요');return}
+  if(!o||o.app!=='kongkong'||!o.data){K.toast('콩콩마을 기록 파일이 아니에요');return}
+  const n=(o.data.log||[]).length,nm=(o.data.parent&&o.data.parent.name)||'아이';
+  const m=document.createElement('div');m.className='modal-bg';m.innerHTML=`<div class="sheet"><h2>📥 기록 불러오기</h2><p><b>${nm}</b>의 기록(문제 ${n}개, ${new Date(o.at).toLocaleDateString('ko-KR')} 저장)을 불러올까요? 지금 이 폰의 기록은 이 파일로 바뀌어요.</p>
+    <div class="set-row"><button class="btn green" id="imok">불러올게요</button><button class="btn ghost" data-a="close">취소</button></div></div>`;document.body.appendChild(m);
+  m.querySelector('#imok').onclick=()=>{try{localStorage.setItem('kongkong-v1',JSON.stringify(o.data))}catch(e){K.toast('저장 공간이 부족해요');return}location.reload()}};rd.readAsText(f)}
 K.views.settings=a=>{const P=S.parent;
   a.innerHTML=`<div class="screen">${K.topbar('부모님 설정')}
   <div class="sheet"><h2>👋 아이 이름</h2><div class="set-row"><input type="text" id="nm" maxlength="8" value="${P.name||''}" placeholder="예: 서윤"></div>
@@ -115,8 +127,11 @@ K.views.settings=a=>{const P=S.parent;
   <h2 style="margin-top:12px">🌙 밤 화면 (눈 보호)</h2><p>밤 화면은 어두운 색이라 저녁에 눈이 덜 부셔요. 자동이면 폰이 다크 모드이거나 정한 시각부터 아침 7시까지 밤 화면이 돼요.</p>
   <div class="set-row" id="thm"></div><div class="set-row" id="nf"></div>
   <h2 style="margin-top:12px">🔒 비밀번호</h2><div class="set-row"><button class="btn ghost" id="pc">비밀번호 바꾸기</button></div>
+  <h2 style="margin-top:12px">📦 다른 폰으로 기록 옮기기</h2><p>기록 파일을 만들어 카톡으로 보내고, 다른 폰의 이 화면에서 불러오면 별점·콩알·리포트·설정이 똑같이 옮겨져요. 불러오면 그 폰의 기록은 이 파일로 바뀌어요.</p>
+  <div class="set-row"><button class="btn ghost" id="ex">📤 기록 내보내기</button><button class="btn ghost" id="im">📥 기록 불러오기</button><input type="file" id="imf" accept=".json,application/json,text/plain" style="display:none"></div>
   <h2 style="margin-top:12px">🗑 기록 지우기</h2><p>이 기기에 저장된 기록을 지우고 처음부터 시작해요. 지운 기록은 되돌릴 수 없어요.</p><div class="set-row" id="rs">${RS0}</div>
   <p style="margin-top:14px"><button class="btn big green" id="sv">저장하고 돌아가기</button></p></div></div>`;
+  $('#imf').onchange=e=>{const f=e.target.files&&e.target.files[0];if(f)importData(f);e.target.value=''};
   let ms=P.missions.slice(),lim=P.limit,gate=P.gate,th=S.theme||'auto',nf=S.nightFrom==null?19:S.nightFrom;
   const draw=()=>{$('#ml').innerHTML=ms.map((m,i)=>`<div class="mrow"><span>${m}</span><button data-x="${i}" aria-label="지우기">✕</button></div>`).join('')||'<p class="muted">미션이 없어요</p>';
     $('#pre').innerHTML=PRESET.filter(x=>!ms.includes(x)).map(x=>`<button class="chip" data-m="${x}">+ ${x}</button>`).join('');
@@ -136,6 +151,8 @@ K.views.settings=a=>{const P=S.parent;
     else if(t.id==='r2'){S.stars={};S.beans=0;S.plant={water:0};S.log=[];S.days={};if(S.play){S.play.used=0;S.play.bonus=0}K.save();K.toast('학습 기록을 지웠어요');$('#rs').innerHTML=RS0}
     else if(t.id==='r4'){try{localStorage.removeItem('kongkong-v1')}catch(e){}location.reload()}
     else if(t.id==='r3'){$('#rs').innerHTML=RS0}
+    else if(t.id==='ex')exportData();
+    else if(t.id==='im')$('#imf').click();
     else if(t.id==='sv'){if(gate&&!ms.length){K.toast('미션을 하나 이상 넣어 주세요');return}Object.assign(P,{missions:ms,limit:lim,gate,name:$('#nm').value.trim()});S.lyrics=$('#lyr').value.slice(0,6000);K.save();K.toast('저장했어요');K.go('village')}});
 };
 
