@@ -88,7 +88,7 @@ h1,h2,h3{margin:0;font-weight:400}
 .stk.sel{box-shadow:0 0 0 4px var(--blue),0 4px 0 #F2CDA8;transform:translateY(-3px)}
 .stk.src{min-width:62px}
 .tray.nums .stk{min-width:52px;padding:4px 6px}
-.ghost{position:fixed;pointer-events:none;z-index:999;transform:translate(-50%,-50%) scale(1.12) rotate(-4deg);opacity:.95}
+.dragghost{position:fixed;pointer-events:none;z-index:999;transform:translate(-50%,-50%) scale(1.12) rotate(-4deg);opacity:.95}
 .stuck{font-size:30px;animation:stick .5s cubic-bezier(.3,1.6,.5,1) both;display:inline-flex;align-items:center;filter:drop-shadow(0 3px 0 rgba(0,0,0,.12))}
 .stuck svg{width:66px;height:42px}
 .stuck .num{font-size:40px;color:var(--blue-d)}

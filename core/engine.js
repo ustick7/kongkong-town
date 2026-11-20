@@ -101,7 +101,7 @@ K.bindDrag=(el,payload)=>{
   el.addEventListener('pointerdown',e=>{
     if(e.button>0)return;e.preventDefault();K.ac();const sx=e.clientX,sy=e.clientY;let g=null,moved=false,over=null;
     const mv=ev=>{const dx=ev.clientX-sx,dy=ev.clientY-sy;
-      if(!moved&&Math.hypot(dx,dy)>8){moved=true;g=el.cloneNode(true);g.classList.add('ghost');g.classList.remove('sel');document.body.appendChild(g);K.sfx.pick()}
+      if(!moved&&Math.hypot(dx,dy)>8){moved=true;g=el.cloneNode(true);g.classList.add('dragghost');g.classList.remove('sel');document.body.appendChild(g);K.sfx.pick()}
       if(moved){g.style.left=ev.clientX+'px';g.style.top=ev.clientY+'px';const t=dropAt(ev.clientX,ev.clientY);if(over!==t){over&&over.classList.remove('over');over=t;over&&over.classList.add('over')}}};
     const up=ev=>{window.removeEventListener('pointermove',mv);window.removeEventListener('pointerup',up);window.removeEventListener('pointercancel',up);
       over&&over.classList.remove('over');
@@ -114,7 +114,7 @@ K.bindDrag=(el,payload)=>{
   });
   el.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();if(payload.tap)return payload.tap();$$('.stk.sel').forEach(x=>x.classList.remove('sel'));sel={el,payload};el.classList.add('sel')}});
 };
-function dropAt(x,y){for(const e of document.elementsFromPoint(x,y)){if(e.classList&&e.classList.contains('ghost'))continue;const d=e.closest&&e.closest('[data-drop]');if(d)return d}return null}
+function dropAt(x,y){for(const e of document.elementsFromPoint(x,y)){if(e.classList&&e.classList.contains('dragghost'))continue;const d=e.closest&&e.closest('[data-drop]');if(d)return d}return null}
 document.addEventListener('click',e=>{const t=e.target.closest('[data-drop]');if(t&&sel&&K.onDrop){const p=sel.payload;sel.el.classList.remove('sel');sel=null;K.onDrop(p,t.dataset.drop,t)}});
 K.clearSel=()=>{sel=null};
 
@@ -142,7 +142,7 @@ K.views={};
 K.render=()=>{const a=$('#app');a.innerHTML='';K.views[K.view](a)};
 K.topbar=(title,extra='')=>`<div class="topbar"><button class="icon-btn" data-a="back" aria-label="뒤로">←</button><div class="mid">${title}</div>${extra}
   <button class="icon-btn" data-a="voice" aria-label="목소리 켜기/끄기">${K.S.voice?'🔊':'🔇'}</button></div>`;
-K.back={village:null,subject:'village',area:'subject',play:'area',free:'area',result:'area',guide:null};
+K.back={village:null,subject:'village',area:'subject',play:'area',free:'area',result:'area',guide:null,garden:'village',settings:'village'};
 document.addEventListener('click',e=>{const b=e.target.closest('[data-a]');if(!b)return;K.ac();const a=b.dataset.a;
   if(a==='back'){if(K.view==='guide')return K.go(K.ctx.guideFrom||'village');const to=K.back[K.view];if(to)K.go(to)}
   else if(a==='voice'){K.S.voice=!K.S.voice;K.save();b.textContent=K.S.voice?'🔊':'🔇';if(!K.S.voice)try{speechSynthesis.cancel()}catch(e){};K.toast(K.S.voice?'콩이가 읽어 줘요':'목소리를 껐어요')}
@@ -156,6 +156,7 @@ K.showTip=area=>{if(!area||!area.tip)return;const t=area.tip;const m=document.cr
 /* 마을 */
 K.views.village=a=>{
   a.innerHTML=`<div class="screen">
+   <div class="hud"><button class="icon-btn" id="gd" aria-label="콩이 화분">🪴</button><span class="beans">🫘 <b>${K.S.beans||0}</b></span><span class="grow"></span><button class="icon-btn" data-a="voice" aria-label="목소리 켜기/끄기">${K.S.voice?'🔊':'🔇'}</button><button class="icon-btn" id="st" aria-label="부모님 설정">⚙️</button></div>
    <div class="brand">${K.BRAND}<small>${K.TAGLINE}</small></div>
    <div class="village"><div class="sun"></div><div class="cloud em">☁️</div>
     <div class="houses">${K.subjects.map((s,i)=>`<button class="house ${s.soon?'soon':''}" data-i="${i}" style="--c:${s.color}">
@@ -167,6 +168,7 @@ K.views.village=a=>{
   $$('.house').forEach(b=>b.onclick=()=>{const s=K.subjects[+b.dataset.i];if(s.soon){K.sfx.soft();K.say(`${s.name} 집은 지금 짓고 있어! 곧 열려요.`);return}
     if(s.href){location.href=s.href;return}K.sfx.pick();K.go('subject',{subj:s})});
   $('#pg').onclick=()=>K.go('guide',{guideFrom:'village'});
+  $('#gd').onclick=()=>K.go('garden');$('#st').onclick=()=>K.parentCheck?K.parentCheck(()=>K.go('settings')):0;
 };
 /* 과목: 영역 고르기 */
 K.views.subject=a=>{const s=K.ctx.subj;
@@ -215,10 +217,10 @@ function makeG(p){
     numbers(from,to,label='알맞은 숫자를 끌어다 놓아요'){G.stickers([],label);G.tray.classList.add('nums');for(let n=from;n<=to;n++)G.tray.appendChild(K.sticker(n,K.numHtml(n)))},
     trayOff(off){G.tray.classList.toggle('off',off)},
     hideTray(){G.tray.style.display='none'},
-    hl(sel){$$('.hl').forEach(x=>x.classList.remove('hl'));if(sel){(typeof sel==='string'?$$(sel):[].concat(sel)).forEach(e=>e&&e.classList.add('hl'))}},
+    hl(sel){$$('.hl').forEach(x=>x.classList.remove('hl'));if(sel){[].concat(sel instanceof NodeList?[...sel]:sel).flatMap(x=>typeof x==='string'?$$(x):[x]).forEach(e=>e&&e.classList&&e.classList.add('hl'))}},
     drop(fn){K.onDrop=(pl,d,t)=>{if(P.done)return;fn(pl,d,t)}},
     stars(){if(P.wrong===0&&!P.usedHint)return 3;if(P.wrong<=1&&P.hint<=2)return 2;return 1},
-    success(line){if(P.done)return;P.done=true;G.hl(null);K.sfx.good();K.confetti(50);K.ctx.score.push(G.stars());K.later(()=>K.say(line),250);G.trayOff(true);
+    success(line){if(P.done)return;P.done=true;G.hl(null);K.sfx.good();K.confetti(50);K.ctx.score.push(G.stars());K.onSolved&&K.onSolved(G.stars());K.later(()=>K.say(line),250);G.trayOff(true);
       const l=K.ctx.level,last=K.ctx.pi>=l.probs.length-1;
       G.actions([[last?'결과 보기 🎉':'다음 문제 ▶','green pulse',()=>{if(last)K.go('result');else K.go('play',{pi:K.ctx.pi+1})}]])},
     /* 틀렸을 때: 꾸짖지 않고, 잠깐 뒤 힌트를 한 단계 올려 줌 */
@@ -262,4 +264,4 @@ K.views.guide=a=>{
 };
 
 /* ---------- 시작 ---------- */
-K.start=()=>{if('speechSynthesis' in window){try{speechSynthesis.getVoices();speechSynthesis.onvoiceschanged=()=>speechSynthesis.getVoices()}catch(e){}}K.render()};
+K.start=()=>{if('speechSynthesis' in window){try{speechSynthesis.getVoices();speechSynthesis.onvoiceschanged=()=>speechSynthesis.getVoices()}catch(e){}}K.view=K.startView?K.startView():'village';K.render()};
