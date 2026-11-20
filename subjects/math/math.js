@@ -3,14 +3,14 @@
 (()=>{
 const {quiz}=K.TYPES;
 K.css(`
-.tf{display:inline-grid;grid-template-columns:repeat(5,var(--tfc,34px));gap:3px;background:#FFE1A8;padding:5px;border-radius:12px;vertical-align:middle}
-.tf i{width:var(--tfc,34px);height:var(--tfc,34px);background:#fff;border-radius:7px;font-style:normal;font-size:calc(var(--tfc,34px)*.7);display:flex;align-items:center;justify-content:center;position:relative;font-family:var(--f-emoji)}
+.tf{display:inline-grid;grid-template-columns:repeat(5,var(--tfc,34px));gap:3px;background:var(--s-yellow2);padding:5px;border-radius:12px;vertical-align:middle}
+.tf i{width:var(--tfc,34px);height:var(--tfc,34px);background:var(--s-white);border-radius:7px;font-style:normal;font-size:calc(var(--tfc,34px)*.7);display:flex;align-items:center;justify-content:center;position:relative;font-family:var(--f-emoji)}
 .tf i.x{opacity:.35}.tf i.x::after{content:'✕';position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:var(--red);font-size:calc(var(--tfc,34px)*.8);font-family:var(--f-disp);opacity:1}
 .tfs{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;align-items:center}
 .pile{display:flex;flex-wrap:wrap;gap:4px 8px;justify-content:center;max-width:340px;font-size:40px;line-height:1.1}
 .pile span{cursor:pointer;border-radius:12px;padding:0 2px;transition:opacity .2s;font-family:var(--f-emoji)}
 .pile span.done{opacity:.3;box-shadow:inset 0 0 0 3px var(--green)}
-.nbox{display:inline-flex;min-width:56px;height:62px;align-items:center;justify-content:center;background:#F2F8FF;border-radius:14px;font-family:var(--f-disp);font-size:32px;color:var(--blue-d);padding:0 6px}
+.nbox{display:inline-flex;min-width:56px;height:62px;align-items:center;justify-content:center;background:var(--s-blue);border-radius:14px;font-family:var(--f-disp);font-size:32px;color:var(--blue-d);padding:0 6px}
 .op{font-family:var(--f-disp);font-size:34px;color:var(--ink)}
 `);
 const FOOD=['🍎','🍓','🍪','🍬','🍩','🍇','🍒','🧁'];

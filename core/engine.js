@@ -295,4 +295,12 @@ K.views.guide=a=>{
 };
 
 /* ---------- 시작 ---------- */
+/* 화면 색: auto = 폰이 다크 모드이거나 저녁(시작 시각~아침 7시)이면 밤 화면, light/dark = 항상 */
+K.isNight=()=>{const m=K.S.theme||'auto';if(m==='light')return false;if(m==='dark')return true;
+  const h=new Date().getHours(),from=K.S.nightFrom==null?19:K.S.nightFrom;const night=from>0&&(h>=from||h<7);
+  const phone=window.matchMedia&&matchMedia('(prefers-color-scheme: dark)').matches;return phone||night};
+K.applyTheme=()=>{const d=K.isNight();const r=document.documentElement;if((r.dataset.theme==='dark')===d&&r.dataset.theme)return;r.dataset.theme=d?'dark':'light';
+  const m=document.querySelector('meta[name="color-scheme"]');if(m)m.content=d?'only dark':'only light';const tc=document.querySelector('meta[name="theme-color"]');if(tc)tc.content=d?'#1C1A2B':'#FFF6E5'};
+K.applyTheme();try{matchMedia('(prefers-color-scheme: dark)').addEventListener('change',K.applyTheme)}catch(e){}
+setInterval(K.applyTheme,60000);document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')K.applyTheme()});
 K.start=()=>{if('speechSynthesis' in window){try{speechSynthesis.getVoices();speechSynthesis.onvoiceschanged=()=>speechSynthesis.getVoices()}catch(e){}}K.view=K.startView?K.startView():'village';K.render()};

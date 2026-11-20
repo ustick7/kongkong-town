@@ -25,22 +25,22 @@ K.css(`
 .stk .ko{font-family:var(--f-disp);font-size:30px;line-height:1.15;color:var(--ink)}
 .stuck .en,.stuck .ko{font-size:34px;color:var(--ink)}
 .bins{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.bin{min-height:150px;border-radius:20px;border:3px dashed var(--blue);background:#F2F8FF;padding:8px;display:flex;flex-direction:column;align-items:center;gap:6px}
+.bin{min-height:150px;border-radius:20px;border:3px dashed var(--blue);background:var(--s-blue);padding:8px;display:flex;flex-direction:column;align-items:center;gap:6px}
 .bin h4{margin:0;font-weight:400;font-size:18px;text-align:center}
 .bin .its{display:flex;flex-wrap:wrap;gap:4px;justify-content:center}
 .bin .its .chip2{font-size:32px;cursor:pointer;background:var(--paper);border-radius:12px;padding:2px 6px;box-shadow:0 3px 0 var(--line);font-family:var(--f-emoji)}
 .bin .its .chip2 small{display:block;font-size:11px;font-family:var(--f-disp);text-align:center;color:var(--muted)}
 .bin.bad{border-color:var(--red)}
 /* 손글씨 */
-.pad-wrap{position:relative;background:var(--paper);border-radius:18px;box-shadow:inset 0 0 0 3px var(--line);touch-action:none;overflow:hidden}
+.pad-wrap{position:relative;background:var(--pad);border-radius:18px;box-shadow:inset 0 0 0 3px var(--line);touch-action:none;overflow:hidden}
 .pad-wrap canvas{display:block;width:100%;touch-action:none}
 .pad-guide{position:absolute;inset:0;pointer-events:none;display:grid}
 .pad-guide i{border-right:2px dashed #EADBC4;border-bottom:2px dashed #EADBC4}
 .pad-tools .btn{width:auto;flex:0 1 auto;font-size:16px;padding:9px 14px;border-radius:14px}
 .pad-tools{display:flex;gap:8px;justify-content:center;flex-wrap:wrap}
 .compare{display:grid;grid-template-columns:1fr;gap:6px;text-align:center}
-.compare .answord{font-family:var(--f-disp);font-size:40px;letter-spacing:6px;color:var(--green-d);background:#EEF9EF;border-radius:14px;padding:6px}
-.compare img{width:100%;border-radius:12px;background:#fff;box-shadow:inset 0 0 0 2px var(--line)}
+.compare .answord{font-family:var(--f-disp);font-size:40px;letter-spacing:6px;color:var(--green-d);background:var(--s-green);border-radius:14px;padding:6px}
+.compare img{width:100%;border-radius:12px;background:var(--s-white);box-shadow:inset 0 0 0 2px var(--line)}
 .selfcheck{display:flex;gap:10px}
 .selfcheck .btn{flex:1}
 `);

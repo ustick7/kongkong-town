@@ -11,7 +11,7 @@ K.css(`
 .mission .em{font-size:34px}
 .mission .tx{flex:1;min-width:0}
 .mission button{appearance:none;border:0;border-radius:16px;padding:10px 14px;font-size:18px;background:var(--blue);color:#fff;box-shadow:0 4px 0 var(--blue-d);cursor:pointer;font-family:inherit}
-.mission.done{background:#EEF9EF}
+.mission.done{background:var(--s-green)}
 .mission.done button{background:var(--green);box-shadow:0 4px 0 var(--green-d)}
 .stamp{font-size:30px;animation:stick .5s cubic-bezier(.3,1.6,.5,1) both}
 .pin-dots{display:flex;gap:14px;justify-content:center;margin:10px 0}
@@ -23,8 +23,8 @@ K.css(`
 .set-row{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:6px 0}
 .set-row input[type=text]{flex:1;min-width:0;font:inherit;font-size:17px;padding:10px 12px;border-radius:12px;border:2px solid var(--line);background:var(--paper);color:var(--ink)}
 .chip{appearance:none;border:2px solid var(--line);background:var(--paper);border-radius:999px;padding:7px 12px;font:inherit;font-size:15px;cursor:pointer;color:var(--ink)}
-.chip.on{border-color:var(--orange);background:#FFF0E3}
-.mrow{display:flex;align-items:center;gap:8px;background:#FAF5EC;border-radius:12px;padding:6px 10px;margin:4px 0}
+.chip.on{border-color:var(--orange);background:var(--s-orange)}
+.mrow{display:flex;align-items:center;gap:8px;background:var(--s-cream);border-radius:12px;padding:6px 10px;margin:4px 0}
 .mrow span{flex:1}
 .mrow button{appearance:none;border:0;background:none;font-size:18px;cursor:pointer;color:var(--red)}
 .pot-wrap{display:flex;justify-content:center}
@@ -110,16 +110,22 @@ K.views.settings=a=>{const P=S.parent;
   <div id="ml"></div><div class="set-row"><input type="text" id="mi" maxlength="20" placeholder="새 미션 (예: 🥛 우유 마셨어요)"><button class="btn green" id="ma">추가</button></div>
   <div class="set-row" id="pre"></div>
   <h2 style="margin-top:12px">⏰ 하루 놀이 시간</h2><div class="set-row" id="lim"></div><p class="muted" id="used"></p>
+  <h2 style="margin-top:12px">🌙 밤 화면 (눈 보호)</h2><p>밤 화면은 어두운 색이라 저녁에 눈이 덜 부셔요. 자동이면 폰이 다크 모드이거나 정한 시각부터 아침 7시까지 밤 화면이 돼요.</p>
+  <div class="set-row" id="thm"></div><div class="set-row" id="nf"></div>
   <h2 style="margin-top:12px">🔒 비밀번호</h2><div class="set-row"><button class="btn ghost" id="pc">비밀번호 바꾸기</button></div>
   <h2 style="margin-top:12px">🗑 기록 지우기</h2><p>이 기기에 저장된 기록을 지우고 처음부터 시작해요. 지운 기록은 되돌릴 수 없어요.</p><div class="set-row" id="rs">${RS0}</div>
   <p style="margin-top:14px"><button class="btn big green" id="sv">저장하고 돌아가기</button></p></div></div>`;
-  let ms=P.missions.slice(),lim=P.limit,gate=P.gate;
+  let ms=P.missions.slice(),lim=P.limit,gate=P.gate,th=S.theme||'auto',nf=S.nightFrom==null?19:S.nightFrom;
   const draw=()=>{$('#ml').innerHTML=ms.map((m,i)=>`<div class="mrow"><span>${m}</span><button data-x="${i}" aria-label="지우기">✕</button></div>`).join('')||'<p class="muted">미션이 없어요</p>';
     $('#pre').innerHTML=PRESET.filter(x=>!ms.includes(x)).map(x=>`<button class="chip" data-m="${x}">+ ${x}</button>`).join('');
     $('#lim').innerHTML=[0,10,20,30,60].map(x=>`<button class="chip ${lim===x?'on':''}" data-l="${x}">${x?x+'분':'제한 없음'}</button>`).join('');
     $('#gate').className='chip '+(gate?'on':'');$('#gate').textContent=gate?'켜짐: 미션 확인 후 시작':'꺼짐: 바로 시작';
+    $('#thm').innerHTML=[['auto','자동'],['light','항상 밝게'],['dark','항상 밤 화면']].map(([k,n])=>`<button class="chip ${th===k?'on':''}" data-th="${k}">${n}</button>`).join('');
+    $('#nf').innerHTML=th==='auto'?[18,19,20,21,0].map(h=>`<button class="chip ${nf===h?'on':''}" data-nf="${h}">${h?'저녁 '+(h-12)+'시부터':'시간 말고 폰 설정만'}</button>`).join(''):'';
     $('#used').textContent=`오늘 논 시간: ${Math.floor(S.play.used/60)}분`};draw();
   a.addEventListener('click',e=>{const t=e.target.closest('button');if(!t)return;
+    if(t.dataset.th){th=t.dataset.th;S.theme=th;K.save();K.applyTheme();draw();return}
+    if(t.dataset.nf!=null){nf=+t.dataset.nf;S.nightFrom=nf;K.save();K.applyTheme();draw();return}
     if(t.dataset.x!=null){ms.splice(+t.dataset.x,1);draw()}else if(t.dataset.m){ms.push(t.dataset.m);draw()}else if(t.dataset.l!=null){lim=+t.dataset.l;draw()}
     else if(t.id==='gate'){gate=!gate;draw()}else if(t.id==='ma'){const v=$('#mi').value.trim();if(v){ms.push(v);$('#mi').value='';draw()}}
     else if(t.id==='pc')K.pinPad('🔒 새 비밀번호','set',pin=>{P.pin=pin;K.save();K.toast('비밀번호를 바꿨어요')});

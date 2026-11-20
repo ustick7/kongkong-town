@@ -10,12 +10,12 @@ K.css(`
 .coin.c500{width:56px;height:56px;font-size:16px;background:radial-gradient(circle at 35% 30%,#FFFFFF,#A2A8B0)}
 .coin.c1000{width:86px;height:44px;border-radius:8px;font-size:16px;background:linear-gradient(135deg,#BFE3C2,#86C48C);color:#245A2B}
 .coins{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;align-items:center;max-width:420px;margin:0 auto}
-.price{display:inline-flex;align-items:center;gap:6px;background:#FFF6D9;border:3px solid var(--sun);border-radius:16px;padding:4px 12px;font-family:var(--f-disp);font-size:26px}
+.price{display:inline-flex;align-items:center;gap:6px;background:var(--s-yellow);border:3px solid var(--sun);border-radius:16px;padding:4px 12px;font-family:var(--f-disp);font-size:26px}
 .price .em{font-size:40px}
-.wallet{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;background:#FFE9D2;border-radius:22px;padding:10px}
+.wallet{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;background:var(--s-tray);border-radius:22px;padding:10px}
 .wallet button{appearance:none;border:0;background:none;padding:2px;cursor:pointer;border-radius:50%}
 .wallet button:active{transform:scale(.92)}
-.paid{min-height:70px;border:3px dashed var(--blue);border-radius:18px;background:#F2F8FF;padding:8px}
+.paid{min-height:70px;border:3px dashed var(--blue);border-radius:18px;background:var(--s-blue);padding:8px}
 .paid .coin{cursor:pointer}
 .sum{font-family:var(--f-disp);font-size:20px;text-align:center;color:var(--blue-d)}
 .shelf{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}

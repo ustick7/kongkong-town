@@ -5,7 +5,7 @@ K.css(`
 .mgrid{position:relative;display:grid;gap:3px;background:var(--line);padding:3px;border-radius:12px;perspective:900px}
 .mc{width:var(--cs);height:var(--cs);background:var(--paper);border-radius:5px;position:relative;transition:background .2s}
 .mc.on{background:var(--col)}
-.mc.tap{cursor:pointer;background:#F7FBFF}
+.mc.tap{cursor:pointer;background:var(--s-blue)}
 .mc.tap.on{background:var(--col)}
 .mc.bad{animation:shake .4s;box-shadow:inset 0 0 0 3px var(--red)}
 .mc.ghostc{background-image:linear-gradient(var(--colg),var(--colg))}

@@ -7,7 +7,7 @@ K.css(`
 .iso .badge circle{fill:var(--blue)} .iso .badge text{fill:#fff;font-family:var(--f-disp);font-size:13px}
 .iso .layer-lb{font-family:var(--f-disp);font-size:14px;fill:var(--orange-d)}
 .twin{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
-.twin>div{flex:1 1 140px;max-width:240px;background:#FAF5EC;border-radius:16px;padding:6px;position:relative;text-align:center}
+.twin>div{flex:1 1 140px;max-width:240px;background:var(--s-cream);border-radius:16px;padding:6px;position:relative;text-align:center}
 .twin .nm{font-size:18px}
 .twin .stuck{position:absolute;top:-10px;right:-6px}
 `);

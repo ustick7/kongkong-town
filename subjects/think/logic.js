@@ -3,21 +3,21 @@
 const {E,N}=K;
 K.css(`
 .bench{display:flex;justify-content:center;gap:8px;padding:10px 8px 18px;background:linear-gradient(transparent 70%,#E2C49A 70%,#E2C49A 82%,transparent 82%);border-radius:14px}
-.seat{flex:1 1 0;max-width:80px;min-width:0;height:84px;border-radius:16px 16px 6px 6px;background:#F7F1E8;border:3px dashed var(--blue);display:flex;flex-direction:column;align-items:center;justify-content:center;position:relative;cursor:pointer}
+.seat{flex:1 1 0;max-width:80px;min-width:0;height:84px;border-radius:16px 16px 6px 6px;background:var(--s-cream);border:3px dashed var(--blue);display:flex;flex-direction:column;align-items:center;justify-content:center;position:relative;cursor:pointer}
 .seat .em{font-size:42px;line-height:1}
 .seat .lb{position:absolute;bottom:-22px;font-size:12px;color:var(--muted);white-space:nowrap}
-.seat.full{border-style:solid;border-color:#D9B27A;background:#FFF8EC}
+.seat.full{border-style:solid;border-color:#D9B27A;background:var(--s-orange)}
 .tower{display:flex;flex-direction:column-reverse;align-items:center;gap:0;margin:0 auto;width:min(240px,100%)}
 .tower .seat{max-width:none;flex:none;width:100%;height:70px;border-radius:0;flex-direction:row;gap:10px;border-width:3px;border-bottom-width:0}
 .tower .seat:first-child{border-bottom-width:3px}
 .tower .seat .lb{position:static;font-size:15px;color:var(--muted);width:44px}
 .tower .roof2{width:110%;height:34px;background:var(--red);clip-path:polygon(50% 0,100% 100%,0 100%)}
 .clues{display:flex;flex-direction:column;gap:6px}
-.clue{display:flex;align-items:center;gap:8px;background:#FAF5EC;border-radius:14px;padding:8px 10px;font-size:17px;line-height:1.4;transition:background .3s}
+.clue{display:flex;align-items:center;gap:8px;background:var(--s-cream);border-radius:14px;padding:8px 10px;font-size:17px;line-height:1.4;transition:background .3s}
 .clue b{color:var(--orange-d);font-weight:400}
 .clue .st{flex:none;width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:var(--line);color:#fff;font-size:17px}
-.clue.ok{background:#EEF9EF}.clue.ok .st{background:var(--green)}
-.clue.no{background:#FFECEA}.clue.no .st{background:var(--red)}
+.clue.ok{background:var(--s-green)}.clue.ok .st{background:var(--green)}
+.clue.no{background:var(--s-red)}.clue.no .st{background:var(--red)}
 `);
 function perms(a){if(a.length<=1)return [a];return a.flatMap((x,i)=>perms(a.slice(0,i).concat(a.slice(i+1))).map(r=>[x].concat(r)))}
 const posName=(n,i,floor)=>floor?(i===n-1?'맨 위층':(i+1)+'층'):n===3?['맨 왼쪽','가운데','맨 오른쪽'][i]:['맨 왼쪽','왼쪽 둘째','오른쪽 둘째','맨 오른쪽'][i];

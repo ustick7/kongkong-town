@@ -7,7 +7,7 @@ K.css(`
 .sp-ch{font-family:var(--f-disp);font-size:32px;line-height:1;color:var(--ink);padding:6px 0}
 .sp-gap{appearance:none;border:0;background:transparent;width:18px;height:54px;border-radius:10px;cursor:pointer;position:relative;padding:0}
 .sp-gap::after{content:'';position:absolute;left:50%;top:10px;bottom:10px;width:2px;background:#EADBC4;transform:translateX(-50%)}
-.sp-gap.on{width:34px;background:#F2F8FF;box-shadow:inset 0 0 0 3px var(--blue)}
+.sp-gap.on{width:34px;background:var(--s-blue);box-shadow:inset 0 0 0 3px var(--blue)}
 .sp-gap.on::after{content:'∨';width:auto;background:none;top:auto;bottom:-4px;color:var(--blue-d);font-family:var(--f-disp);font-size:22px}
 .sp-gap.bad{box-shadow:inset 0 0 0 3px var(--red)}
 .sp-gap:focus-visible{outline:3px solid var(--blue)}

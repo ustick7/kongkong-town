@@ -7,12 +7,12 @@ K.css(`
   border:3px solid var(--line);display:flex;flex-wrap:wrap;justify-content:center;align-content:center;gap:2px;font-size:30px}
 .plate .lb{position:absolute;bottom:-24px;left:0;right:0;text-align:center;font-size:16px;color:var(--muted)}
 .plate.drop{border-style:dashed;border-color:var(--blue)}
-.basket{min-width:200px;min-height:96px;border-radius:18px 18px 40px 40px;background:#F6E3C3;border:4px solid #D9B27A;display:flex;flex-wrap:wrap;justify-content:center;align-content:center;gap:2px;padding:8px;font-size:30px}
+.basket{min-width:200px;min-height:96px;border-radius:18px 18px 40px 40px;background:var(--s-wood);border:4px solid #D9B27A;display:flex;flex-wrap:wrap;justify-content:center;align-content:center;gap:2px;padding:8px;font-size:30px}
 .fly{transition:transform .7s cubic-bezier(.5,0,.3,1)}
 .cloth{position:absolute;inset:-4px;border-radius:50% / 30%;background:repeating-linear-gradient(45deg,#FF9DB5,#FF9DB5 10px,#FFB8C9 10px,#FFB8C9 20px);display:flex;align-items:center;justify-content:center;
   font-family:var(--f-disp);font-size:30px;color:#fff;text-shadow:0 2px 0 rgba(0,0,0,.15);transition:transform .6s,opacity .6s;z-index:2}
 .cloth.lift{transform:translateY(-70px) rotate(-12deg);opacity:0}
-.roof{position:relative;margin:0 auto;width:min(300px,100%);padding:12px 10px 10px;background:#FFE3C7;border-radius:14px;display:flex;flex-wrap:wrap;justify-content:center;gap:4px;font-size:30px}
+.roof{position:relative;margin:0 auto;width:min(300px,100%);padding:12px 10px 10px;background:var(--s-orange2);border-radius:14px;display:flex;flex-wrap:wrap;justify-content:center;gap:4px;font-size:30px}
 .roof .gone{filter:grayscale(1) opacity(.35)}
 .roof .gone:after{content:"";position:absolute}
 .roof .em{position:relative}
@@ -22,10 +22,10 @@ K.css(`
 .eqline{display:flex;align-items:center;justify-content:center;gap:8px;font-size:30px;flex-wrap:wrap}
 .eqline .n{min-width:44px;text-align:center;color:var(--ink)}
 .ways{width:100%;border-collapse:separate;border-spacing:0 6px;font-size:20px;text-align:center}
-.ways td{background:#F7F1E8;padding:4px 6px}
+.ways td{background:var(--s-cream);padding:4px 6px}
 .ways td:first-child{border-radius:12px 0 0 12px}.ways td:last-child{border-radius:0 12px 12px 0}
-.ways tr.new td{background:#EEF9EF;animation:pop .4s both}
-.ways tr.empty td{color:var(--muted);background:#FBF7F1}
+.ways tr.new td{background:var(--s-green);animation:pop .4s both}
+.ways tr.empty td{color:var(--muted);background:var(--s-cream)}
 .tapit{cursor:pointer}
 `);
 const many=(k,n,cls='')=>Array.from({length:n},()=>`<span class="em ${cls}">${E(k)}</span>`).join('');
