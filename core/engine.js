@@ -48,6 +48,13 @@ K.later=(f,ms)=>{const t=setTimeout(f,ms);timers.push(t);return t};
 K.clearTimers=()=>{timers.forEach(clearTimeout);timers=[]};
 K.css=txt=>{const s=document.createElement('style');s.textContent=txt;document.head.appendChild(s)};
 K.shuffle=a=>{a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
+K.ri=(a,b)=>a+Math.floor(Math.random()*(b-a+1));
+K.pick=a=>a[Math.floor(Math.random()*a.length)];
+K.pickN=(a,n)=>K.shuffle(a).slice(0,n);
+/* 보기 만들기: 정답 + 헷갈리는 오답들을 섞어서 */
+K.opts=(ans,pool,n=3)=>K.shuffle([ans].concat(K.pickN(pool.filter(x=>String(x)!==String(ans)),n-1)));
+/* 문제 묶음 만들기: 첫 문제는 같이 하는 연습, 나머지는 매번 새로 */
+K.makeSet=(n,fn,guidedFirst)=>Array.from({length:n},(_,i)=>{const p=fn(i);if(guidedFirst&&i===0)p.guided=true;return p});
 K.el=(html)=>{const t=document.createElement('template');t.innerHTML=html.trim();return t.content.firstElementChild};
 
 /* ---------- 소리 ---------- */
@@ -132,12 +139,12 @@ K.area=(sid,def)=>{const s=K.subjects.find(x=>x.id===sid);if(!s)throw new Error(
   def.levels.forEach((l,i)=>{l.area=def;l.idx=i});return def};
 const starKey=l=>`${l.area.subject.id}/${l.area.id}/${l.id}`;
 K.levelStars=l=>K.S.stars[starKey(l)]||0;
-K.areaStars=a=>a.levels.filter(l=>l.probs).reduce((s,l)=>s+K.levelStars(l),0);
-K.areaMax=a=>a.levels.filter(l=>l.probs).length*3;
+K.areaStars=a=>a.levels.filter(l=>l.probs||l.gen).reduce((s,l)=>s+K.levelStars(l),0);
+K.areaMax=a=>a.levels.filter(l=>l.probs||l.gen).length*3;
 
 /* ---------- 화면 전환 ---------- */
 K.view='village'; K.ctx={};
-K.go=(v,c={})=>{if(K.curP&&!K.curP.done&&(K.curP.wrong||K.curP.hint)&&K.logProb)K.logProb(K.curP,false);K.curP=null;K.clearTimers();try{speechSynthesis.cancel()}catch(e){};sel=null;K.onDrop=null;$$('.modal-bg').forEach(m=>m.remove());
+K.go=(v,c={})=>{if(K.curP&&!K.curP.done&&!K.curP.practice&&(K.curP.wrong||K.curP.hint||K.curP.edits)&&K.logProb)K.logProb(K.curP,false,'','fail');K.curP=null;K.clearTimers();try{speechSynthesis.cancel()}catch(e){};sel=null;K.onDrop=null;$$('.modal-bg').forEach(m=>m.remove());
   K.view=v;Object.assign(K.ctx,c);K.render();window.scrollTo(0,0)};
 K.views={};
 K.render=()=>{const a=$('#app');a.innerHTML='';K.views[K.view](a)};
@@ -187,58 +194,79 @@ K.views.area=a=>{const ar=K.ctx.area;
   a.innerHTML=`<div class="screen">${K.topbar(ar.name,ar.tip?`<button class="icon-btn" data-a="tip" aria-label="부모님 팁">👪</button>`:'')}${K.buddyRow()}
    <div class="tiles">${ar.levels.map((l,i)=>{const st=K.levelStars(l);return `<button class="tile" data-i="${i}" style="--c:${l.color||ar.color}">${l.badge?`<span class="badge">${l.badge}</span>`:''}
      <span class="no">${l.no||(i+1)+'단계'}</span><span class="nm">${l.name}</span><span class="ds">${l.desc||''}</span><span class="em">${l.emoji||''}</span>
-     ${l.probs?`<span class="st">${'★'.repeat(st)}${'☆'.repeat(3-st)}</span>`:''}</button>`}).join('')}</div>
+     ${K.hasProbs(l)?`<span class="st">${'★'.repeat(st)}${'☆'.repeat(3-st)}</span>`:''}</button>`}).join('')}</div>
    ${ar.tip?`<button class="btn ghost" data-a="tip">👪 이 놀이, 이렇게 설명해 주세요</button>`:''}</div>`;
   K.say(ar.hello||'단계를 골라 봐! 처음이면 1단계부터!');
-  $$('.tile').forEach(b=>b.onclick=()=>{const l=ar.levels[+b.dataset.i];K.sfx.pick();l.free?K.go('free',{level:l}):K.go('play',{level:l,pi:0,score:[]})});
+  $$('.tile').forEach(b=>b.onclick=()=>{const l=ar.levels[+b.dataset.i];K.sfx.pick();l.free?K.go('free',{level:l}):K.play(l)});
 };
 /* 자유 놀이 */
 K.views.free=a=>{const l=K.ctx.level;a.innerHTML=`<div class="screen">${K.topbar(l.name,l.area.tip?`<button class="icon-btn" data-a="tip" aria-label="부모님 팁">👪</button>`:'')}${K.buddyRow()}<div id="free" style="display:flex;flex-direction:column;gap:12px"></div></div>`;
   l.free($('#free'),K)};
 
-/* ---------- 문제 화면과 게임 도구 G ---------- */
+/* ---------- 문제 화면과 게임 도구 G ----------
+   답하는 방식: 스티커를 칸에 자유롭게 놓고 바꾸고 빼다가, "다 했어요"를 눌러야 채점해요.
+   힌트는 생각하는 방법만 알려 주고 답은 알려 주지 않아요. 힌트를 쓰면 별이 줄어요.
+   기록: solo 혼자 맞힘 / hint 힌트 보고 맞힘 / retry 다시 해서 맞힘 / hintretry 힌트+다시 / practice 같이 한 연습 / fail 못 풀고 나감 */
+K.levelProbs=l=>typeof l.gen==='function'?l.gen():l.probs;
+K.hasProbs=l=>!!(l.probs||l.gen);
+K.play=(l,o={})=>K.go('play',Object.assign({level:l,probs:K.levelProbs(l),pi:0,score:[],retry:false,retryOf:null},o));
 K.views.play=a=>{
-  const l=K.ctx.level, ar=l.area, p=l.probs[K.ctx.pi];
-  const dots=l.probs.map((_,i)=>`<i class="${i<K.ctx.pi?'done':i===K.ctx.pi?'on':''}"></i>`).join('');
-  a.innerHTML=`<div class="screen">${K.topbar(`${ar.name} · ${l.name}<div class="dots">${dots}</div>`,ar.tip?`<button class="icon-btn" data-a="tip" aria-label="부모님 팁">👪</button>`:'')}
+  const l=K.ctx.level, ar=l.area, probs=K.ctx.probs, p=probs[K.ctx.pi];
+  const dots=probs.map((_,i)=>`<i class="${i<K.ctx.pi?'done':i===K.ctx.pi?'on':''}"></i>`).join('');
+  a.innerHTML=`<div class="screen play">${K.topbar(`${ar.name} · ${l.name}<div class="dots">${dots}</div>`,ar.tip?`<button class="icon-btn" data-a="tip" aria-label="부모님 팁">👪</button>`:'')}
    ${K.buddyRow()}<div class="board" id="board"></div><div class="tray" id="tray"></div><div class="actions" id="acts"></div></div>`;
   const G=makeG(p);
   const fn=ar.types[p.type];if(!fn)throw new Error('문제 종류 없음: '+p.type);fn(p,G);
 };
+const ENC=['다시 한 번 살펴볼까? 고칠 곳을 고치고 <b>다 했어요</b>를 눌러 줘.','아깝다! 천천히 다시 생각해 보자. 💡 힌트도 있어.','괜찮아, 틀리면서 똑똑해지는 거야! 다시 해 볼까?'];
 function makeG(p){
-  const P={p,hint:0,wrong:0,done:false,usedHint:false,t0:Date.now(),picks:[],last:null};K.curP=P;
-  const G={P,p,say:K.say,later:K.later,
+  const P={p,hint:0,wrong:0,edits:0,done:false,usedHint:false,practice:!!p.guided,t0:Date.now(),picks:[]};K.curP=P;
+  const vals={};
+  const G={P,p,vals,say:K.say,later:K.later,
     board:$('#board'),tray:$('#tray'),
     html(h){G.board.innerHTML=h;return G.board},
     actions(btns){const a=$('#acts');a.innerHTML='';btns.forEach(([t,cls,fn,id])=>{const b=document.createElement('button');b.className='btn '+cls;b.innerHTML=t;if(id)b.id=id;b.onclick=()=>{K.ac();fn()};a.appendChild(b)})},
-    hintBtn(fn){return ['💡 힌트','ghost',()=>{if(P.done)return;P.usedHint=true;P.hint++;fn(P.hint)},'hintBtn']},
-    /* 기본 버튼 세트: 힌트(+확인) */
-    setActs(hintFn,checkFn,checkLabel='✔ 다 했어요'){G._acts=[G.hintBtn(hintFn)];if(checkFn)G._acts.push([checkLabel,'green',()=>{if(!P.done)checkFn()},'chk']);G.actions(G._acts)},
-    stickers(list,label='스티커를 끌어다 붙여요 (눌러서 고른 뒤 붙일 곳을 눌러도 돼요)'){G.tray.className='tray';G.tray.innerHTML=`<div class="lbl">${label}</div>`;list.forEach(s=>G.tray.appendChild(s instanceof Element?s:K.sticker(s.v,s.html,s.label)));},
-    numbers(from,to,label='알맞은 숫자를 끌어다 놓아요'){G.stickers([],label);G.tray.classList.add('nums');for(let n=from;n<=to;n++)G.tray.appendChild(K.sticker(n,K.numHtml(n)))},
+    stickers(list,label='스티커를 끌어다 칸에 놓아요. 바꾸려면 다른 스티커를 놓고, 빼려면 칸을 눌러요'){G.tray.className='tray';G.tray.innerHTML=`<div class="lbl">${label}</div>`;list.forEach(s=>G.tray.appendChild(s instanceof Element?s:K.sticker(s.v,s.html,s.label)));},
+    numbers(from,to,label){G.stickers([],label||'알맞은 숫자를 끌어다 칸에 놓아요. 바꾸려면 다른 숫자를 놓으면 돼요');G.tray.classList.add('nums');for(let n=from;n<=to;n++)G.tray.appendChild(K.sticker(n,K.numHtml(n)))},
     trayOff(off){G.tray.classList.toggle('off',off)},
     hideTray(){G.tray.style.display='none'},
     hl(sel){$$('.hl').forEach(x=>x.classList.remove('hl'));if(sel){[].concat(sel instanceof NodeList?[...sel]:sel).flatMap(x=>typeof x==='string'?$$(x):[x]).forEach(e=>e&&e.classList&&e.classList.add('hl'))}},
-    drop(fn){K.onDrop=(pl,d,t)=>{if(P.done)return;P.last=pl;fn(pl,d,t)}},
-    /* 리포트용: 틀린 내용을 글로 남겨요 */
-    miss(note){P.picks.push(note)},
-    stars(){if(P.wrong===0&&!P.usedHint)return 3;if(P.wrong<=1&&P.hint<=2)return 2;return 1},
-    success(line){if(P.done)return;P.done=true;K.logProb&&K.logProb(P,true,line);G.hl(null);K.sfx.good();K.confetti(50);K.ctx.score.push(G.stars());K.onSolved&&K.onSolved(G.stars());K.later(()=>K.say(line),250);G.trayOff(true);
-      const l=K.ctx.level,last=K.ctx.pi>=l.probs.length-1;
+    /* 칸: 스티커를 놓으면 값이 들어가고, 칸을 누르면 비워져요 */
+    slot(el,id,empty){el.dataset.drop=id;el.dataset.slot=id;el.classList.add('slotted');el._empty=empty!=null?empty:el.innerHTML;return el},
+    setSlot(id,pl){const el=G.board.querySelector(`[data-slot="${id}"]`);if(!el)return;
+      if(pl){vals[id]=pl;el.innerHTML='';el.appendChild(K.stuck(pl.html));el.classList.add('filled');K.sfx.drop()}else{delete vals[id];el.innerHTML=el._empty;el.classList.remove('filled');K.sfx.pick()}
+      el.classList.remove('wrongmark');G.edit()},
+    /* 직접 만든 놀이(시소 올리기 등)에서 무언가 바꿨을 때 */
+    edit(){P.edits++;G.onChange&&G.onChange();G.refresh()},
+    drop(fn){G._drop=fn},
+    accept(fn){G._accept=fn},
+    /* 답 확인 설정: check()는 {ok, note(리포트에 남길 아이 답), why(틀렸을 때 콩이 말), line(맞았을 때 콩이 말)} */
+    answer(o){G._answer=o;const hs=o.hints||[];
+      G._acts=[[hs.length?`💡 힌트 <small>${hs.length}</small>`:'💡 힌트 없음','ghost',()=>{if(P.done||P.hint>=hs.length)return;P.usedHint=true;P.hint++;hs[P.hint-1]();const b=$('#hintBtn');if(b){const left=hs.length-P.hint;b.innerHTML=left?`💡 힌트 <small>${left}</small>`:'💡 힌트 끝';if(!left)b.disabled=true}},'hintBtn'],
+        [o.label||'✔ 다 했어요','green',()=>G.submit(),'chk']];
+      if(!P.guiding){G.actions(G._acts);if(!hs.length)$('#hintBtn').disabled=true}G.refresh()},
+    refresh(){const b=$('#chk');if(!b||!G._answer)return;const r=G._answer.ready?G._answer.ready(vals):Object.keys(vals).length>0;b.disabled=!r||P.done;b.classList.toggle('pulse',!!r&&!P.done)},
+    submit(){if(P.done||!G._answer)return;const r=G._answer.check(vals);
+      if(r.ok)return G.success(r.line||'맞았어!');
+      P.wrong++;P.picks.push(r.note||Object.values(vals).map(K.pickText).join(', '));K.sfx.soft();
+      const box=r.mark||G.board;box.classList.remove('shake');void box.offsetWidth;box.classList.add('shake');
+      K.say((r.why?r.why+' ':'')+ENC[(P.wrong-1)%ENC.length])},
+    result(){if(P.practice)return 'practice';if(P.wrong===0)return P.usedHint?'hint':'solo';return P.usedHint?'hintretry':'retry'},
+    stars(){const r=G.result();return r==='solo'||r==='practice'?3:(r==='hint'||(r==='retry'&&P.wrong===1))?2:1},
+    success(line){if(P.done)return;P.done=true;K.logProb&&K.logProb(P,true,line,G.result());G.hl(null);K.sfx.good();K.confetti(50);const st=G.stars();K.ctx.score.push(st);K.onSolved&&K.onSolved(st);K.later(()=>K.say(line),250);G.trayOff(true);
+      const last=K.ctx.pi>=K.ctx.probs.length-1;
       G.actions([[last?'결과 보기 🎉':'다음 문제 ▶','green pulse',()=>{if(last)K.go('result');else K.go('play',{pi:K.ctx.pi+1})}]])},
-    /* 틀렸을 때: 꾸짖지 않고, 잠깐 뒤 힌트를 한 단계 올려 줌 */
-    wrong(target,hintFn,line,note){P.wrong++;P.picks.push(note||K.pickText(P.last));P.last=null;K.sfx.soft();if(target){target.classList.remove('shake');void target.offsetWidth;target.classList.add('shake')}
-      K.say(line||['음~ 다시 생각해 볼까?','아깝다! 같이 살펴보자.','괜찮아, 틀리면서 똑똑해지는 거야!'][(P.wrong-1)%3]);
-      if(hintFn)K.later(()=>{if(!P.done){P.hint++;hintFn(P.hint)}},1500)},
-    /* 처음 보는 문제는 한 걸음씩 같이 해 보기 */
+    /* 처음 보는 문제는 한 걸음씩 같이 해 보기 (연습으로 기록) */
     guide(steps){let i=0;G.trayOff(true);P.guiding=true;const acts=$('#acts');
       const step=()=>{const st=steps[i];K.say(typeof st.say==='function'?st.say():st.say);st.act&&st.act();
-        if(i===steps.length-1){P.guiding=false;G.trayOff(false);G.actions(G._acts||[]);return}
+        if(i===steps.length-1){P.guiding=false;G.trayOff(false);G.actions(G._acts||[]);G.refresh();return}
         acts.innerHTML='';
         if(st.wait)st.wait(()=>{i++;K.later(step,400)});
         else{const b=document.createElement('button');b.className='btn blue pulse';b.textContent='알겠어! 다음 ▶';b.onclick=()=>{K.ac();K.sfx.pick();i++;step()};acts.appendChild(b)}};
       step()}
   };
+  K.onDrop=(pl,d,t)=>{if(P.done)return;if(t&&t.dataset.slot!=null){if(G._accept&&!G._accept(pl,d))return;G.setSlot(d,pl);return}G._drop&&G._drop(pl,d,t)};
+  G.board.addEventListener('click',e=>{const t=e.target.closest('[data-slot].filled');if(!t||P.done||document.querySelector('.stk.sel'))return;G.setSlot(t.dataset.slot,null)});
   return G;
 }
 K.views.result=a=>{const sc=K.ctx.score,l=K.ctx.level,ar=l.area;const avg=Math.max(1,Math.round(sc.reduce((x,y)=>x+y,0)/Math.max(1,sc.length)));
@@ -251,8 +279,8 @@ K.views.result=a=>{const sc=K.ctx.score,l=K.ctx.level,ar=l.area;const avg=Math.m
    <button class="btn ghost big" id="again">다시 하기</button><button class="btn ghost big" id="mp">다른 놀이 고르기</button><div style="flex:1"></div></div>`;
   K.confetti(80);K.sfx.good();
   K.say(avg===3?`${l.name} 완벽해! 혼자서 생각하는 힘이 쑥쑥 자랐어!`:avg===2?`${l.name} 끝! 힌트를 잘 써서 해냈어. 대단해!`:`${l.name} 끝까지 해냈어! 다시 하면 더 쉬워질 거야.`);
-  nx&&($('#nx').onclick=()=>nx.free?K.go('free',{level:nx}):K.go('play',{level:nx,pi:0,score:[]}));
-  $('#again').onclick=()=>K.go('play',{level:l,pi:0,score:[]});$('#mp').onclick=()=>K.go('subject');
+  nx&&($('#nx').onclick=()=>nx.free?K.go('free',{level:nx}):K.play(nx));
+  $('#again').onclick=()=>K.play(l);$('#mp').onclick=()=>K.go('subject');
 };
 /* 부모님 가이드: 공통 원칙 + 각 영역 팁 모음 */
 K.views.guide=a=>{
@@ -261,7 +289,7 @@ K.views.guide=a=>{
   <div class="sheet"><h2>아이에게 문제를 이해시키는 4단계</h2>
    <p>창의사고력 문제가 어려운 이유는 대부분 <b>머릿속에서 그림을 바꿔야 하기</b> 때문이에요. 그래서 ${K.BRAND}의 모든 놀이는 같은 순서로 설명해요.</p>
    <div class="principle"><div><b>👀</b>① 보여 주기<br>움직이는 그림</div><div><b>✋</b>② 만져 보기<br>직접 끌고 눌러요</div><div><b>💬</b>③ 말로 하기<br>질문 하나씩</div><div><b>🔍</b>④ 확인하기<br>틀려도 다시</div></div>
-   <p>틀리면 콩이가 혼내지 않고 <b>힌트를 한 단계씩</b> 더 줘요. 부모님도 답을 말해 주기보다 아래 '말하기 대본'의 질문 하나만 반복해 주세요.</p>
+   <p>아이는 답을 자유롭게 놓고 고치다가 <b>다 했어요</b>를 눌러야 채점돼요. 그래서 손이 미끄러진 실수와 진짜 틀린 답이 구분돼요. 힌트는 답이 아니라 <b>생각하는 방법</b>만 알려 주고, 힌트를 쓰면 별이 줄고 리포트에도 따로 표시돼요. 부모님도 답을 말해 주기보다 아래 '말하기 대본'의 질문 하나만 반복해 주세요.</p>
    <p>각 놀이 화면 위의 👪 버튼을 누르면 그 놀이에 맞는 대본이 바로 나와요.</p></div>
   ${areas.map(({s,x})=>`<div class="sheet"><h2>${x.emoji} ${x.name}: ${x.tip.t}</h2>${x.tip.b}</div>`).join('')}</div>`;
 };

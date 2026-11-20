@@ -82,53 +82,52 @@ function autoSub(ss,rules,onAll){const t=subTargets(ss,rules);if(!t.length){onAl
 function countUp(ss,sides,cb){let d=0;sides.forEach(side=>{const its=[...ss.querySelectorAll('.pan.'+side+' .it')];its.forEach((it,i)=>K.later(()=>{it.dataset.n=i+1;K.sfx.count()},d+i*380));d+=its.length*380+250});K.later(cb||(()=>{}),d)}
 const clearNums=ss=>ss.querySelectorAll('[data-n]').forEach(x=>delete x.dataset.n);
 
+/* 스티커 하나를 여러 곳 중 한 곳에 붙이는 문제 (붙인 걸 옮기거나 눌러서 뗄 수 있어요) */
+function onePlace(G,targets,onSet){let cur=null;
+  const render=()=>{G.board.querySelectorAll('.mark').forEach(m=>m.remove());if(!cur)return;const t=targets(cur.d);if(!t)return;
+    const m=K.stuck(cur.pl.html);m.classList.add('mark');t.appendChild(m);m.addEventListener('click',e=>{e.stopPropagation();if(G.P.done)return;cur=null;K.sfx.pick();render();G.edit()})};
+  G.drop((pl,d)=>{if(pl.kind!=='stk'||!targets(d))return;cur={pl,d};K.sfx.drop();render();G.edit();onSet&&onSet(cur)});
+  return ()=>cur}
+
 /* 1단계: 내려간 쪽이 무거워요 */
 function heavy(p,G){
-  G.html(`<div class="qline"><span class="tag q">문제</span>${p.tilt==='F'?'시소가 어떤가요?':'더 무거운 쪽은?'}</div><div class="qarea">${ssHTML('qss',{dropL:true,dropR:true,mid:true})}</div>`);
+  G.html(`<div class="qline"><span class="tag q">문제</span>${'더 무거운 쪽에 ⭐, 똑같으면 가운데에 🟰를 붙여요'}</div><div class="qarea">${ssHTML('qss',{dropL:true,dropR:true,mid:true})}</div>`);
   const ss=K.$('#qss');setSS(ss,p.L,p.R);tilt(ss,'F');
-  G.stickers([{v:'star',html:'<span class="em">⭐</span>',label:'더 무거워요'},{v:'eq',html:'<span class="em">🟰</span>',label:'똑같아요'}]);G.trayOff(true);
+  G.stickers([{v:'star',html:'<span class="em">⭐</span>',label:'더 무거워요'},{v:'eq',html:'<span class="em">🟰</span>',label:'똑같아요'}],'스티커를 끌어다 붙여요. 다른 곳에 다시 붙이면 옮겨져요');G.trayOff(true);
   K.later(()=>{tilt(ss,p.tilt);if(p.tilt!=='F')K.sfx.thud();G.trayOff(false)},900);
-  const ans=p.tilt==='F'?{v:'eq',d:'mid'}:{v:'star',d:p.tilt};const hk=p.tilt==='L'?p.L[0]:p.R[0];
-  if(p.intro)G.say('시소는 <b>무거운 쪽이 쿵!</b> 내려가요. 아빠랑 시소 타면 아빠 쪽이 내려가지? 더 무거운 쪽에 ⭐ 스티커를 붙여 봐!');
-  else if(p.odd)G.say('어? 이 시소 나라에서는 어느 쪽이 내려갔지? 진짜 세상이랑 달라도 <b>시소 그림이 정답</b>이야. 무거운 쪽에 ⭐!');
-  else if(p.tilt==='F')G.say('이번엔 시소가 <b>평평해!</b> 평평하면 무슨 뜻일까? 알맞은 스티커를 붙여 봐.');
-  else G.say('어느 쪽이 쿵 내려갔어? 더 무거운 쪽에 ⭐ 스티커를 붙여요.');
-  const hint=h=>{
-    if(p.tilt==='F'){G.say('평평하면 양쪽 무게가 <b>똑같다</b>는 뜻이야. 가운데 받침대에 🟰 스티커를 붙여 봐!');G.hl(ss.querySelector('.mid'))}
-    else if(h===1){G.say('시소를 잘 봐! 어느 쪽이 <b>땅에 더 가까워?</b>');const pan=ss.querySelector('.pan.'+p.tilt);if(!pan.querySelector('.arrow-down')){const ar=document.createElement('span');ar.className='arrow-down em';ar.textContent='⬇️';pan.appendChild(ar)}}
-    else{G.say(`아래로 내려간 쪽이 더 무거운 거야. [${hk}|이] 있는 쪽이 내려갔지? 거기에 ⭐!`);G.hl(ss.querySelector('.pan.'+p.tilt))}};
-  G.setActs(hint);
-  G.drop((pl,d,t)=>{if(pl.kind!=='stk')return;
-    if(pl.v===ans.v&&d===ans.d){t.appendChild(K.stuck(pl.html));K.sfx.drop();
-      G.success(p.tilt==='F'?'맞아! 평평하면 양쪽 무게가 똑같아.':p.odd?`맞아! 진짜랑 달라도 시소 그림대로 [${hk}|이] 더 무거워!`:`맞아! 쿵 내려간 쪽, [${hk}|이] 더 무거워!`)}
-    else G.wrong(t,hint)});
+  const get=onePlace(G,d=>d==='L'||d==='R'?ss.querySelector('.pan.'+d):d==='mid'?ss.querySelector('.mid'):null);
+  const hk=p.tilt==='L'?p.L[0]:p.R[0];
+  G.answer({ready:()=>!!get(),hints:[
+     ()=>G.say('시소를 잘 봐! 어느 쪽이 <b>땅에 더 가까워?</b> 평평한지도 살펴봐.'),
+     ()=>G.say('아래로 내려간 쪽이 더 무거운 거야. 평평하면 양쪽이 똑같아.')],
+    check:()=>{const c=get(),ok=p.tilt==='F'?(c.pl.v==='eq'&&c.d==='mid'):(c.pl.v==='star'&&c.d===p.tilt);
+      const where={L:'왼쪽',R:'오른쪽',mid:'가운데'}[c.d];
+      return ok?{ok:true,line:p.tilt==='F'?'맞아! 평평하면 양쪽 무게가 똑같아.':p.odd?`맞아! 진짜랑 달라도 시소 그림대로 [${hk}|이] 더 무거워!`:`맞아! 쿵 내려간 쪽, [${hk}|이] 더 무거워!`}
+        :{ok:false,note:`${where}에 ${c.pl.v==='star'?'⭐':'🟰'}`}}});
+  if(p.intro)G.say('시소는 <b>무거운 쪽이 쿵!</b> 내려가요. 아빠랑 시소 타면 아빠 쪽이 내려가지? 더 무거운 쪽에 ⭐를 붙이고 <b>다 했어요</b>!');
+  else if(p.odd)G.say('어? 이 시소 나라에서는 어느 쪽이 내려갔지? 진짜 세상이랑 달라도 <b>시소 그림이 정답</b>이야.');
+  else G.say('시소를 보고 알맞은 곳에 스티커를 붙여요!');
 }
 
 /* 2·4단계: 바꿔서 비교하기 */
 function compare(p,G){
   G.html(`${bogiHTML(p.rules)}<div class="qline"><span class="tag q">문제</span>어느 쪽이 내려갈까요?</div>
-   <div class="qarea" id="qa">${ssHTML('qss')}</div><div class="counts" id="cnt"></div><div class="slot-row"><div class="slot" data-drop="slot" id="slot">여기에<br>스티커를 붙여요</div></div>`);
+   <div class="qarea" id="qa">${ssHTML('qss')}</div><div class="counts" id="cnt"></div><div class="slot-row"><div class="slot" id="slot">여기에<br>스티커를 붙여요</div></div>`);
+  G.slot(K.$('#slot'),'s');
   setupBogi(p.rules);const ss=K.$('#qss');setSS(ss,p.L,p.R);tilt(ss,'?');
   const ans=cmp(sumW(p.L,p.rules),sumW(p.R,p.rules)),base=baseOf(p.rules);
   G.stickers([TILT.L,TILT.F,TILT.R]);
   const showCounts=()=>{K.$('#cnt').innerHTML=`<span class="pop">왼쪽 ${panItems(ss,'L').length}개</span><span class="pop">오른쪽 ${panItems(ss,'R').length}개</span>`};
-  const cline=()=>{const l=panItems(ss,'L').length,r=panItems(ss,'R').length;
-    return l===r?`왼쪽 ${l}개, 오른쪽 ${r}개! 개수가 같으면 무게도 같아. 시소는 어떻게 될까?`:`왼쪽 ${l}개, 오른쪽 ${r}개! <b>더 많은 쪽이 더 무거워.</b> 어느 쪽이 쿵 내려갈까?`};
-  const allBase=()=>subTargets(ss,p.rules).length===0;
-  const after=()=>{G.hl(null);showCounts();countUp(ss,['L','R'],()=>G.say(cline()))};
-  const hint=h=>{
-    if(h===1){G.hl('#bogi');showEqs(p.rules);G.say('<b>보기</b>를 다시 보자. 시소가 평평하지? '+p.rules.map(ruleLine).join(' 그리고 '))}
-    else if(h===2&&!allBase()){G.hl('#qa');const r=p.rules.find(r=>r[0]===subTargets(ss,p.rules)[0].dataset.k);
-      G.say(`무게가 같으니까 바꿔도 돼! [${r[0]}|을] 톡! 눌러서 [${r[1]}] ${r[2]}개로 바꿔 봐.`);armTaps(ss,p.rules,after)}
-    else if(!allBase()){G.say('같이 바꿔 보자! 뿅!');autoSub(ss,p.rules,after)}
-    else{clearNums(ss);after()}};
-  G.setActs(hint);
-  G.drop((pl,d,t)=>{if(pl.kind!=='stk'||d!=='slot')return;
-    if(pl.v===ans){t.innerHTML='';t.appendChild(K.stuck(pl.html));t.classList.add('ok');K.sfx.drop();K.later(()=>{tilt(ss,ans);if(ans!=='F')K.sfx.thud()},400);
-      const wl=sumW(p.L,p.rules),wr=sumW(p.R,p.rules);
-      G.success(ans==='F'?`맞아! [${base}]로 바꾸면 ${wl}개 대 ${wr}개, 똑같아서 <b>평평해!</b>`:`맞아! [${base}]로 바꾸면 ${wl}개 대 ${wr}개! ${ans==='L'?'왼쪽':'오른쪽'}이 쿵!`)}
-    else G.wrong(t,hint)});
-  if(!p.guided){G.say('먼저 <b>보기</b>를 보고, 문제 시소가 어떻게 될지 스티커를 붙여요! 모르겠으면 💡 힌트!');return}
+  const after=()=>{G.hl(null);showCounts();G.say('모두 같은 것이 됐어! 이제 어느 쪽이 더 무거울까?')};
+  G.answer({hints:[
+     ()=>{G.hl('#bogi');showEqs(p.rules);G.say('<b>보기</b>를 다시 보자. 시소가 평평하지? '+p.rules.map(ruleLine).join(' 그리고 '))},
+     ()=>{G.hl('#qa');if(!subTargets(ss,p.rules).length){after();return}const r=p.rules.find(r=>r[0]===subTargets(ss,p.rules)[0].dataset.k);
+       G.say(`무게가 같으니까 바꿔도 돼! [${r[0]}|을] 톡! 눌러서 바꿔 봐.`);armTaps(ss,p.rules,after)}],
+    check:v=>{const wl=sumW(p.L,p.rules),wr=sumW(p.R,p.rules);
+      if(v.s.v===ans){K.later(()=>{tilt(ss,ans);if(ans!=='F')K.sfx.thud()},300);
+        return {ok:true,line:ans==='F'?`맞아! [${base}]로 바꾸면 ${wl}개 대 ${wr}개, 똑같아서 <b>평평해!</b>`:`맞아! [${base}]로 바꾸면 ${wl}개 대 ${wr}개! ${ans==='L'?'왼쪽':'오른쪽'}이 쿵!`}}
+      return {ok:false,note:v.s.label,mark:K.$('#slot')}}});
+  if(!p.guided){G.say(p.say||'먼저 <b>보기</b>를 보고, 문제 시소가 어떻게 될지 스티커를 붙여요!');return}
   const r=p.rules[0],multi=p.rules.length>1,steps=[
     {say:'먼저 <b>보기</b>를 봐요. 시소가 <b>평평</b>하지? 평평하면 양쪽 무게가 똑같다는 뜻이야.',act:()=>G.hl('#bogi')},
     {say:p.rules.map(ruleLine).join(' 그리고 ')+' 이게 보기의 <b>약속</b>이야.',act:()=>showEqs(p.rules)}];
@@ -137,7 +136,7 @@ function compare(p,G){
   steps.push({say:multi?`[${r[0]}|을] 톡! 눌러서 바꿔 봐. 바뀐 것도 또 바꿀 수 있으면 계속 눌러! 모두 같은 것이 될 때까지!`:`[${r[0]}|을] 톡! 눌러 봐. 무게가 같으니까 [${r[1]}] ${r[2]}개로 바꿔도 시소는 그대로야!`,
     wait:next=>armTaps(ss,p.rules,()=>{G.hl(null);next()})});
   steps.push({say:'짠! 이제 모두 같은 것이 됐어. 몇 개인지 세어 볼까?',wait:next=>{showCounts();countUp(ss,['L','R'],next)}});
-  steps.push({say:()=>cline()+' 알맞은 스티커를 붙여 봐!'});
+  steps.push({say:'개수가 많은 쪽이 더 무거워. 알맞은 스티커를 붙이고 <b>다 했어요</b>를 눌러 봐!'});
   G.guide(steps);
 }
 
@@ -150,54 +149,66 @@ function fill(p,G){
   const need=sumW(p.L,p.rules),rp=ss.querySelector('.pan.R');
   G.stickers([],'끌어서 오른쪽에 올려요 (누르면 하나씩 올라가요 · 올린 것을 누르면 내려와요)');
   const src=document.createElement('div');src.className='stk src';src.tabIndex=0;src.innerHTML=`<span class="em">${E(p.give)}</span><span>${gn}</span>`;
-  const changed=()=>{tilt(ss,'?');K.$('#cnt').innerHTML=`<span>${subTargets(ss,p.rules).length?'':'왼쪽 '+panItems(ss,'L').length+'개'}</span><span>오른쪽 ${panItems(ss,'R').length}개</span>`};
-  const addOne=()=>{if(G.P.done)return;if(rp.querySelectorAll('.it').length>=10){K.toast('10개까지만 올릴 수 있어요');return}rp.appendChild(itemEl(p.give,'sw rm'));fitPan(rp);K.sfx.drop();changed()};
+  const changed=()=>{tilt(ss,'?');K.$('#cnt').innerHTML=`<span></span><span>오른쪽 ${panItems(ss,'R').length}개</span>`;G.edit()};
+  const addOne=()=>{if(G.P.done)return;if(rp.querySelectorAll('.it').length>=12){K.toast('12개까지만 올릴 수 있어요');return}rp.appendChild(itemEl(p.give,'sw rm'));fitPan(rp);K.sfx.drop();changed()};
   K.bindDrag(src,{kind:'item',k:p.give,html:E(p.give),tap:addOne});G.tray.appendChild(src);
   rp.addEventListener('click',e=>{const it=e.target.closest('.it.rm');if(!it||G.P.done)return;e.stopPropagation();it.remove();fitPan(rp);K.sfx.pick();changed()});
   G.drop((pl,d)=>{if(pl.kind==='item'&&d==='R')addOne()});
-  const leftLine=()=>`왼쪽은 [${p.give}] ${need}개랑 무게가 같아. 오른쪽에도 ${need}개!`;
-  const hint=h=>{
-    if(h===1){G.hl('#bogi');showEqs(p.rules);G.say('<b>보기</b>를 봐. '+p.rules.map(ruleLine).join(' 그리고 '))}
-    else if(subTargets(ss,p.rules).length&&h===2){G.hl('#qa');const k=subTargets(ss,p.rules)[0].dataset.k;G.say(`왼쪽 [${k}|을] 톡! 눌러서 바꿔 보면 몇 개인지 알 수 있어.`);
-      armTaps(ss,p.rules,()=>{G.hl(null);changed();countUp(ss,['L'],()=>G.say(leftLine()))})}
-    else if(subTargets(ss,p.rules).length){G.say('같이 바꿔 보자! 뿅!');autoSub(ss,p.rules,()=>{changed();countUp(ss,['L'],()=>G.say(leftLine()))})}
-    else{clearNums(ss);countUp(ss,['L'],()=>G.say(leftLine()))}};
-  const check=()=>{const have=panItems(ss,'R').length;if(!have){G.say(`오른쪽에 [${p.give}|을] 올려 봐!`);return}
-    const st=cmp(need,have);tilt(ss,st);if(st!=='F')K.sfx.thud();
-    if(st==='F')G.success(`평평해! [${p.give}] ${need}개가 왼쪽이랑 똑같은 무게야. 대단해!`);
-    else{G.P.wrong++;G.miss(`${have}개 올림`);K.later(()=>{K.sfx.soft();G.say(st==='L'?`아직 왼쪽이 쿵! 오른쪽이 <b>가벼워</b>. [${p.give}|을] 더 올려 볼까?`:`오른쪽이 쿵! 너무 <b>무거워</b>. [${p.give}|을] 조금 빼 볼까?`);
-      if(G.P.wrong>=2)K.later(()=>{if(!G.P.done){G.P.hint++;hint(G.P.hint)}},1800)},700)}};
-  G.setActs(hint,check,'⚖️ 확인');changed();
-  if(!p.guided){G.say(`왼쪽과 똑같은 무게가 되도록 [${p.give}|을] 올리고 <b>확인</b>을 눌러요!`);return}
+  G.answer({label:'⚖️ 다 올렸어요',ready:()=>panItems(ss,'R').length>0,hints:[
+     ()=>{G.hl('#bogi');showEqs(p.rules);G.say('<b>보기</b>를 봐. '+p.rules.map(ruleLine).join(' 그리고 '))},
+     ()=>{G.hl('#qa');if(!subTargets(ss,p.rules).length){G.say(`왼쪽에 있는 [${p.give}|을] 세어 봐!`);return}
+       G.say(`왼쪽을 모두 [${p.give}]로 바꿔 보면 몇 개인지 셀 수 있어. 톡톡 눌러 봐!`);armTaps(ss,p.rules,()=>{G.hl(null);G.say('다 바꿨어! 왼쪽을 세어 보고 오른쪽도 똑같이 맞춰 봐.')})}],
+    check:()=>{const have=panItems(ss,'R').length,st=cmp(need,have);tilt(ss,st);if(st!=='F')K.sfx.thud();
+      return st==='F'?{ok:true,line:`평평해! [${p.give}] ${need}개가 왼쪽이랑 똑같은 무게야. 대단해!`}
+        :{ok:false,note:`${have}개 올림`,why:st==='L'?'시소를 봐! 아직 왼쪽이 쿵 내려갔어.':'시소를 봐! 오른쪽이 쿵 내려갔어.'}}});
+  G.onChange=()=>{};
+  if(!p.guided){G.say(`왼쪽과 똑같은 무게가 되도록 [${p.give}|을] 올리고 <b>다 올렸어요</b>를 눌러요!`);return}
   G.guide([
     {say:'<b>보기</b>를 먼저 봐! 평평하니까 '+ruleLine(p.rules[0]),act:()=>{G.hl('#bogi');showEqs(p.rules)}},
-    {say:`왼쪽 [${p.L[0]}|을] 톡톡! 눌러서 [${p.give}]로 바꿔 봐.`,act:()=>G.hl('#qa'),wait:next=>armTaps(ss,p.rules,()=>{G.hl(null);changed();next()})},
+    {say:`왼쪽 [${p.L[0]}|을] 톡톡! 눌러서 [${p.give}]로 바꿔 봐.`,act:()=>G.hl('#qa'),wait:next=>armTaps(ss,p.rules,()=>{G.hl(null);next()})},
     {say:'몇 개가 됐는지 세어 볼까?',wait:next=>countUp(ss,['L'],next)},
-    {say:()=>leftLine()+' 오른쪽에 올리고 <b>확인</b>을 눌러 봐!'}]);
+    {say:'오른쪽에도 똑같이 올리고 <b>다 올렸어요</b>를 눌러 봐!'}]);
 }
 
 /* 5단계: 누가 제일 무거울까 */
 function order(p,G){
   const all=[...new Set(p.pairs.flat())];
   const heav=all.find(k=>!p.pairs.some(q=>q[1]===k)),light=all.find(k=>!p.pairs.some(q=>q[0]===k)),mid=all.find(k=>k!==heav&&k!==light);
-  const ans=p.ask==='heavy'?heav:light;const cards=[all[1],all[2],all[0]];
+  const ans=p.ask==='heavy'?heav:light;const cards=K.shuffle(all);
   G.html(`<div class="bogi" id="bogi"><span class="tag">보기</span><div class="bogi-row">${p.pairs.map((_,i)=>ssHTML('b'+i,{sm:true})).join('')}</div></div>
    <div class="qline"><span class="tag q">문제</span>${p.ask==='heavy'?'제일 무거운 것에 👑':'제일 가벼운 것에 🪶'} 스티커를 붙여요</div>
    <div class="cards">${cards.map(k=>`<div class="card" data-drop="${k}">${E(k)}<span class="nm">${N(k)}</span></div>`).join('')}</div><div id="lad"></div>`);
-  p.pairs.forEach((q,i)=>{const s=K.$('#b'+i),f=i%2===1;setSS(s,f?[q[1]]:[q[0]],f?[q[0]]:[q[1]]);tilt(s,'F');K.later(()=>{tilt(s,f?'R':'L');K.sfx.thud()},700+i*500)});
-  G.stickers([p.ask==='heavy'?{v:'crown',html:'<span class="em">👑</span>',label:'제일 무거워'}:{v:'feather',html:'<span class="em">🪶</span>',label:'제일 가벼워'}]);
-  const ladder=()=>{K.$('#lad').innerHTML=`<div class="ladder pop"><span class="em">${E(heav)}<span class="lb">무거워</span></span><span class="gt">&gt;</span><span class="em">${E(mid)}</span><span class="gt">&gt;</span><span class="em">${E(light)}<span class="lb">가벼워</span></span></div>`};
+  p.pairs.forEach((q,i)=>{const s=K.$('#b'+i),f=p.flip?p.flip[i]:i%2===1;setSS(s,f?[q[1]]:[q[0]],f?[q[0]]:[q[1]]);tilt(s,'F');K.later(()=>{tilt(s,f?'R':'L');K.sfx.thud()},700+i*500)});
+  G.stickers([p.ask==='heavy'?{v:'crown',html:'<span class="em">👑</span>',label:'제일 무거워'}:{v:'feather',html:'<span class="em">🪶</span>',label:'제일 가벼워'}],'스티커를 끌어다 붙여요. 다른 카드에 다시 붙이면 옮겨져요');
+  const get=onePlace(G,d=>K.IT[d]?G.board.querySelector(`.card[data-drop="${d}"]`):null);
   const pl=(a,b)=>`[${a}|이] [${b}]보다 무거워.`;
-  const hint=h=>{
-    if(h===1){G.hl('#b0');const q=p.pairs[0];G.say('첫 번째 시소를 봐. 쿵 내려간 쪽이 무거워! '+pl(q[0],q[1]))}
-    else if(h===2){G.hl('#b1');const q=p.pairs[1];G.say('두 번째 시소! '+pl(q[0],q[1]))}
-    else{G.hl(null);ladder();G.say(`무거운 순서로 줄을 세우면 [${heav}], [${mid}], [${light}]! 그럼 제일 ${p.ask==='heavy'?'무거운':'가벼운'} 건?`)}};
-  G.setActs(hint);
+  G.answer({ready:()=>!!get(),hints:[
+     ()=>{G.hl('#b0');const q=p.pairs[0];G.say('첫 번째 시소를 봐. 쿵 내려간 쪽이 무거워! '+pl(q[0],q[1]))},
+     ()=>{G.hl('#b1');const q=p.pairs[1];G.say('두 번째 시소! '+pl(q[0],q[1])+' 두 시소에 똑같이 나오는 친구가 누군지 찾아봐.')}],
+    check:()=>{const c=get();if(c.d===ans){K.$('#lad').innerHTML=`<div class="ladder pop"><span class="em">${E(heav)}<span class="lb">무거워</span></span><span class="gt">&gt;</span><span class="em">${E(mid)}</span><span class="gt">&gt;</span><span class="em">${E(light)}<span class="lb">가벼워</span></span></div>`;
+      return {ok:true,line:`맞아! [${heav}], [${mid}], [${light}] 순서야. 제일 ${p.ask==='heavy'?'무거운':'가벼운'} 건 [${ans}]!`}}
+      return {ok:false,note:N(c.d)+'에 붙임'}}});
   G.say(p.intro?'시소 두 개를 잘 봐! 둘 다 <b>쿵 내려간 쪽이 무거워</b>. 셋 중에 누가 제일 무거울까?':p.ask==='heavy'?'두 시소를 보고 <b>제일 무거운</b> 것을 찾아 👑를 붙여요!':'이번엔 <b>제일 가벼운</b> 것을 찾아 🪶를 붙여요!');
-  G.drop((x,d,t)=>{if(x.kind!=='stk'||!K.IT[d])return;
-    if(d===ans){t.appendChild(K.stuck(x.html));K.sfx.drop();ladder();G.success(`맞아! [${heav}], [${mid}], [${light}] 순서야. 제일 ${p.ask==='heavy'?'무거운':'가벼운'} 건 [${ans}]!`)}
-    else G.wrong(t,hint)});
 }
+
+/* ---------- 문제 만들기 ---------- */
+const FRUIT=['lemon','cabbage','apple','straw','melon','carrot','mush','pear','grape','banana','peach','cherry'];
+const ANIM=['bear','dog','cat','mouse','ele','pig','chick','rabbit','fox','frog','panda','lion'];
+function mkHeavy(i){const [a,b]=K.pickN(K.pick([FRUIT,ANIM]),2);const t=i===0?'L':K.pick(['L','R','L','R','F']);
+  return {type:'heavy',L:[a],R:[b],tilt:t,intro:i===0,odd:i===2,skill:'tilt'}}
+function mkCompare(i,chain){const pool=K.pick([FRUIT,ANIM]);
+  if(!chain){const [a,b]=K.pickN(pool,2),n=K.pick([2,2,3]);const rules=[[a,b,n]];
+    let L=K.pick([[a],[a],[a,a],[a,b]]);const w=sumW(L,rules);const k=Math.max(1,Math.min(7,w+K.pick([-1,0,1])));let R=Array(k).fill(b);
+    if(Math.random()<.5)[L,R]=[R,L];return {type:'compare',rules,L,R,skill:'sub'}}
+  const [a,b,c]=K.pickN(pool,3),m=K.pick([2,2,3]);const rules=[[a,b,2],[b,c,m]];const w=2*m;
+  const k=Math.max(1,Math.min(7,w+K.pick([-1,0,1])));let R=k>m&&Math.random()<.5?[b].concat(Array(k-m).fill(c)):Array(k).fill(c);let L=[a];
+  if(Math.random()<.5)[L,R]=[R,L];return {type:'compare',rules,L,R,skill:'chain'}}
+function mkFill(i,chain){const pool=K.pick([FRUIT,ANIM]);let rules,give;
+  if(chain){const [a,b,c]=K.pickN(pool,3);rules=[[a,b,2],[b,c,2]];give=c}else{const [a,b]=K.pickN(pool,2);rules=[[a,b,K.pick([2,3])]];give=b}
+  const big=rules[0][0];let L=[big];if(i>1&&!chain)L.push(K.pick([big,give]));if(i>3)L.push(give);
+  return {type:'fill',rules,L,give,skill:chain?'chain':'fill'}}
+function mkOrder(i){const [a,b,c]=K.pickN(K.pick([FRUIT,ANIM]),3);const pairs=K.shuffle([[a,b],[b,c]]);
+  return {type:'order',pairs,ask:i%2?'light':'heavy',flip:[Math.random()<.5,Math.random()<.5],intro:i===0,skill:'order'}}
 
 /* 놀이터 */
 const YW={mouse:1,chick:1,rabbit:2,cat:2,dog:3,pig:4,bear:6,ele:12};
@@ -235,31 +246,14 @@ K.area('think',{id:'balance',name:'무게 비교',desc:'시소로 무겁고 가�
 <div class="say-line">이제 배추 2개랑 배추 1개! 어느 쪽이 더 무거워? 그럼 어느 쪽이 내려가?</div>
 <p>아이가 "배추가 더 크잖아!" 하면 좋은 신호예요. "진짜 세상이랑 달라도, 이 문제 나라에서는 보기가 정답이야"라고 말해 주세요.</p>
 <p>종이 위에서는 <b>손가락으로 레몬을 가리고 옆에 배추 2개를 그려</b> 주세요. 레고 블록 2개를 붙여 '레몬'이라 부르고 블록 1개를 '배추'라고 하면, 손에 들어 보고 바로 알아요. 게임 2단계에서는 레몬을 톡 누르면 배추 2개로 변신해요.</p>`},
+  skills:{tilt:'시소 읽기',sub:'바꿔치기 비교',fill:'같은 무게 맞추기',chain:'두 번 바꾸기',order:'무게 순서'},
   levels:[
    {id:'yard',no:'놀이터',name:'시소 놀이터',desc:'동물을 올려 무게를 느껴요',emoji:'🐘🐭',color:'#DDF0C8',free:yard},
-   {id:'l1',name:'쿵! 무거운 쪽',desc:'내려간 쪽이 더 무거워요',emoji:'⬇️⭐',probs:[
-     {type:'heavy',L:['ele'],R:['mouse'],tilt:'L',intro:true},{type:'heavy',L:['straw'],R:['melon'],tilt:'R'},
-     {type:'heavy',L:['lemon'],R:['cabbage'],tilt:'L',odd:true},{type:'heavy',L:['apple'],R:['pear'],tilt:'F'}]},
-   {id:'l2',name:'바꿔치기 시소',desc:'보기를 보고 바꿔서 비교해요',emoji:'🍋➜🥬🥬',badge:'핵심',color:'#FFC2D1',probs:[
-     {type:'compare',rules:[['lemon','cabbage',2]],L:['lemon'],R:['cabbage'],guided:true,odd:true},
-     {type:'compare',rules:[['lemon','cabbage',2]],L:['cabbage','cabbage','cabbage'],R:['lemon']},
-     {type:'compare',rules:[['apple','straw',3]],L:['apple'],R:['straw','straw','straw']},
-     {type:'compare',rules:[['melon','apple',2]],L:['melon'],R:['apple','apple','apple']},
-     {type:'compare',rules:[['carrot','mush',2]],L:['carrot','mush'],R:['mush','mush','mush']}]},
-   {id:'l3',name:'평평하게 만들기',desc:'몇 개를 올려야 똑같을까요?',emoji:'⚖️',color:'#D6ECFF',probs:[
-     {type:'fill',rules:[['lemon','cabbage',2]],L:['lemon','lemon'],give:'cabbage',guided:true},
-     {type:'fill',rules:[['apple','straw',3]],L:['apple'],give:'straw'},
-     {type:'fill',rules:[['melon','apple',2]],L:['melon','apple'],give:'apple'},
-     {type:'fill',rules:[['carrot','mush',2]],L:['carrot','carrot','mush'],give:'mush'}]},
-   {id:'l4',name:'두 번 바꾸기',desc:'바꾸고 또 바꿔요',emoji:'🍉➜🍎➜🍓',color:'#E8DEFF',probs:[
-     {type:'compare',rules:[['melon','apple',2],['apple','straw',2]],L:['melon'],R:['straw','straw','straw'],guided:true},
-     {type:'fill',rules:[['bear','dog',2],['dog','cat',2]],L:['bear'],give:'cat'},
-     {type:'compare',rules:[['melon','apple',2],['apple','straw',2]],L:['apple','straw'],R:['melon']},
-     {type:'fill',rules:[['ele','pig',2],['pig','chick',2]],L:['ele','chick'],give:'chick'}]},
-   {id:'l5',name:'누가 제일 무거울까',desc:'시소 두 개로 순서를 찾아요',emoji:'👑',color:'#FFF1B8',probs:[
-     {type:'order',pairs:[['dog','cat'],['cat','mouse']],ask:'heavy',intro:true},
-     {type:'order',pairs:[['apple','straw'],['melon','apple']],ask:'heavy'},
-     {type:'order',pairs:[['rabbit','chick'],['bear','rabbit']],ask:'light'},
-     {type:'order',pairs:[['banana','pear'],['pear','grape']],ask:'light'}]}
+   {id:'l1',name:'쿵! 무거운 쪽',desc:'내려간 쪽이 더 무거워요',emoji:'⬇️⭐',gen:()=>K.makeSet(5,mkHeavy)},
+   {id:'l2',name:'바꿔치기 시소',desc:'보기를 보고 바꿔서 비교해요',emoji:'🍋➜🥬🥬',badge:'핵심',color:'#FFC2D1',gen:()=>[
+     {type:'compare',rules:[['lemon','cabbage',2]],L:['lemon'],R:['cabbage'],guided:true,odd:true,skill:'sub'}].concat(K.makeSet(6,i=>mkCompare(i,false)))},
+   {id:'l3',name:'평평하게 만들기',desc:'몇 개를 올려야 똑같을까요?',emoji:'⚖️',color:'#D6ECFF',gen:()=>K.makeSet(6,i=>mkFill(i,false),true)},
+   {id:'l4',name:'두 번 바꾸기',desc:'바꾸고 또 바꿔요',emoji:'🍉➜🍎➜🍓',color:'#E8DEFF',gen:()=>K.makeSet(6,i=>i%2?mkFill(i,true):mkCompare(i,true),true)},
+   {id:'l5',name:'누가 제일 무거울까',desc:'시소 두 개로 순서를 찾아요',emoji:'👑',color:'#FFF1B8',gen:()=>K.makeSet(6,mkOrder)}
   ]});
 })();

@@ -43,24 +43,19 @@ function count(p,G){
   const n=total(p.h),hid=hidden(p.h);
   G.html(`<div class="qline"><span class="tag q">문제</span>쌓기나무는 모두 몇 개일까요?</div>
    <div style="text-align:center">${isoSVG(p.h,'iso',{color:p.color||0})}</div><div class="counts" id="lc" style="justify-content:center;gap:14px"></div>
-   <div class="slot-row">모두 <div class="slot sm" data-drop="ans">?</div>개</div>`);
-  G.numbers(1,Math.max(10,n+2));
+   <div class="slot-row">모두 <div class="slot sm" id="ans">?</div>개</div>`);
+  G.slot(K.$('#ans'),'a');G.numbers(1,Math.max(10,n+2));
   const svg=K.$('#iso');
-  const layers=()=>{explode(svg,true);const lc=layerCounts(p.h);K.$('#lc').innerHTML=lc.map((c,z)=>`<span class="pop" style="animation-delay:${z*.2}s">${z+1}층 ${c}개</span>`).join('');
-    return lc};
-  const hint=h=>{
-    if(h===1){if(hid){svg.classList.add('xray');G.say(`보이지 않는 곳에도 <b>숨어 있는</b> 쌓기나무가 있어! 위에 있는 나무는 아래에서 받쳐 줘야 하거든. 투명하게 해 봤어.`)}
-      else G.say('한 층씩 나눠서 세면 쉬워! 💡를 한 번 더 눌러 봐.')}
-    else if(h===2){svg.classList.remove('xray');const lc=layers();G.say(`층별로 띄워 봤어! ${lc.map((c,z)=>`${z+1}층 ${c}개`).join(', ')}. 모두 더하면?`)}
-    else{layers();badges(svg,()=>G.say(`하나씩 세니까 모두 ${n}개!`))}};
-  G.setActs(hint);
-  G.drop((pl,d,t)=>{if(pl.kind!=='stk'||d!=='ans')return;
-    if(pl.v===n){t.innerHTML='';t.appendChild(K.stuck(pl.html));t.classList.add('ok');K.sfx.drop();layers();G.success(hid?`맞아! 숨어 있던 ${hid}개까지 모두 ${n}개!`:`맞아! 모두 ${n}개!`)}
-    else G.wrong(t,hint,pl.v===n-hid&&hid?'보이는 것만 세었구나! 아래에 숨어 있는 나무도 있어.':null)});
+  G.answer({hints:[
+     ()=>{svg.classList.add('xray');G.say('위에 있는 나무는 아래에서 받쳐 줘야 해! 투명하게 보면 <b>숨어 있는</b> 나무가 있는지 알 수 있어.')},
+     ()=>{svg.classList.remove('xray');explode(svg,true);G.say('층별로 띄워 봤어! 1층부터 한 층씩 세어서 더해 봐.')}],
+    check:v=>{if(v.a.v===n){explode(svg,true);const lc=layerCounts(p.h);K.$('#lc').innerHTML=lc.map((c,z)=>`<span class="pop">${z+1}층 ${c}개</span>`).join('');
+        return {ok:true,line:hid?`맞아! 숨어 있던 ${hid}개까지 모두 ${n}개!`:`맞아! 모두 ${n}개!`}}
+      return {ok:false,note:v.a.v+'개',mark:K.$('#ans'),why:hid&&v.a.v===n-hid?'보이는 것만 세었구나! 아래에 숨어 있는 나무도 있어.':''}}});
   if(p.guided)G.guide([
-    {say:'쌓기나무를 셀 때는 <b>한 층씩</b> 나눠서 세면 쉬워. 띄워 볼게!',wait:next=>{K.later(()=>{layers();next()},600)}},
-    {say:()=>`${layerCounts(p.h).map((c,z)=>`${z+1}층에 ${c}개`).join(', ')}! 하나씩 세어 보자.`,wait:next=>badges(svg,next)},
-    {say:'모두 몇 개인지 숫자를 넣어 봐!',act:()=>{explode(svg,false)}}]);
+    {say:'쌓기나무를 셀 때는 <b>한 층씩</b> 나눠서 세면 쉬워. 띄워 볼게!',wait:next=>K.later(()=>{explode(svg,true);next()},600)},
+    {say:'1층부터 하나씩 세어 보자.',wait:next=>badges(svg,next)},
+    {say:'모두 몇 개인지 숫자를 칸에 놓고 <b>다 했어요</b>!',act:()=>explode(svg,false)}]);
   else G.say(p.say||(hid?'잘 봐! 보이지 않는 곳에 숨은 쌓기나무도 있을 수 있어.':'쌓기나무를 세어 봐! 층별로 세면 쉬워.'));
 }
 /* 두 모양 중 더 많은 쪽 */
@@ -69,29 +64,33 @@ function more(p,G){
   G.html(`<div class="qline"><span class="tag q">문제</span>쌓기나무를 더 많이 쓴 쪽에 ⭐를 붙여요</div>
    <div class="twin"><div data-drop="A" id="ta"><span class="nm">가</span>${isoSVG(p.a,'isoA',{color:1})}<div class="counts" id="ca" style="justify-content:center"></div></div>
    <div data-drop="B" id="tb"><span class="nm">나</span>${isoSVG(p.b,'isoB',{color:2})}<div class="counts" id="cb" style="justify-content:center"></div></div></div>`);
-  G.stickers([{v:'star',html:'<span class="em">⭐</span>',label:'더 많아요'}]);
-  const hint=h=>{
-    if(h===1){K.$('#isoA').classList.add('xray');K.$('#isoB').classList.add('xray');G.say('숨어 있는 나무도 있는지 투명하게 봐!')}
-    else if(h===2){['A','B'].forEach(s=>{const svg=K.$('#iso'+s);svg.classList.remove('xray');explode(svg,true);K.$('#c'+s.toLowerCase()).innerHTML=layerCounts(s==='A'?p.a:p.b).map((c,z)=>`<span>${z+1}층 ${c}</span>`).join(' · ')});G.say('층별로 나눠서 세어 봐!')}
-    else{badges(K.$('#isoA'),()=>badges(K.$('#isoB'),()=>G.say(`가는 ${na}개, 나는 ${nb}개!`)))}};
-  G.setActs(hint);
-  G.drop((pl,d,t)=>{if(pl.kind!=='stk'||(d!=='A'&&d!=='B'))return;
-    if(d===ans){t.appendChild(K.stuck(pl.html));K.sfx.drop();K.$('#ca').textContent=na+'개';K.$('#cb').textContent=nb+'개';G.success(`맞아! 가는 ${na}개, 나는 ${nb}개. ${ans==='A'?'가':'나'}가 더 많아!`)}
-    else G.wrong(t,hint)});
+  G.stickers([{v:'star',html:'<span class="em">⭐</span>',label:'더 많아요'}],'⭐를 끌어다 붙여요. 다른 쪽에 다시 붙이면 옮겨져요');
+  let cur=null;const render=()=>{G.board.querySelectorAll('.mark').forEach(m=>m.remove());if(cur){const m=K.stuck('<span class="em">⭐</span>');m.classList.add('mark');K.$(cur==='A'?'#ta':'#tb').appendChild(m)}};
+  G.drop((pl,d)=>{if(pl.kind!=='stk'||(d!=='A'&&d!=='B'))return;cur=d;K.sfx.drop();render();G.edit()});
+  G.answer({ready:()=>!!cur,hints:[
+     ()=>{K.$('#isoA').classList.add('xray');K.$('#isoB').classList.add('xray');G.say('숨어 있는 나무도 있는지 투명하게 봐!')},
+     ()=>{['A','B'].forEach(s=>{const svg=K.$('#iso'+s);svg.classList.remove('xray');explode(svg,true)});G.say('층별로 띄웠어! 양쪽을 각각 세어서 비교해 봐.')}],
+    check:()=>cur===ans?(K.$('#ca').textContent=na+'개',K.$('#cb').textContent=nb+'개',{ok:true,line:`맞아! 가는 ${na}개, 나는 ${nb}개. ${ans==='A'?'가':'나'}가 더 많아!`})
+      :{ok:false,note:(cur==='A'?'가':'나')+' 선택'}});
   G.say('두 모양 중 쌓기나무를 더 많이 쓴 건 어느 쪽일까? 눈으로 보기에 커 보여도 세어 봐야 알아!');
 }
+/* 높이 지도 만들기: 위에 있는 나무는 항상 아래가 받쳐요 */
+function mkH(w,d,maxH,fill){return Array.from({length:d},()=>Array.from({length:w},()=>Math.random()<fill?K.ri(1,maxH):0)).map((row,y,a)=>row)}
+function mkCount(i,hard){let h;for(let t=0;t<40;t++){h=hard?mkH(K.ri(2,3),2,3,.85):mkH(K.ri(2,4),1,i<2?2:3,.95);const n=total(h);
+  if(n>=3&&n<=(hard?12:9)&&(!hard||hidden(h)>0)&&h.flat().some(x=>x>0))break}
+  return {type:'count',h,color:i%3,skill:hard?'hidden':'count'}}
+function mkMore(){let a,b;for(let t=0;t<40;t++){a=mkH(K.ri(2,3),K.ri(1,2),3,.8);b=mkH(K.ri(2,4),K.ri(1,2),2,.8);if(total(a)!==total(b)&&total(a)>=3&&total(b)>=3&&total(a)<=10&&total(b)<=10)break}
+  return {type:'more',a,b,skill:'more'}}
 K.area('think',{id:'blocks',name:'쌓기나무',desc:'숨은 나무까지 세어요',emoji:'🧱',color:'#FFF1B8',
   hello:'쌓기나무 탑이야! 몇 개로 만들었을까?',types:{count,more},
   tip:{t:'층별로 나눠 세기',b:`<p>쌓기나무에서 아이들이 가장 많이 틀리는 이유는 <b>보이는 것만 세기</b> 때문이에요. 위에 있는 나무는 아래에서 받쳐 줘야 한다는 걸 알려 주세요.</p>
 <div class="say-line">이 나무는 공중에 떠 있을 수 있을까? 밑에 뭐가 있어야 할까?</div>
 <div class="say-line">1층부터 세어 볼까? 1층은 몇 개, 2층은 몇 개?</div>
 <p>집에 블록이 있다면 그림과 똑같이 쌓아 보게 하는 게 제일 좋아요. 게임에서는 힌트를 누르면 투명하게 보이고, 층별로 띄워서 보여 줘요.</p>`},
+  skills:{count:'층별로 세기',hidden:'숨은 나무 찾기',more:'개수 비교'},
   levels:[
-   {id:'l1',name:'보이는 대로 세기',desc:'층별로 세어요',emoji:'🧱',probs:[
-     {type:'count',h:[[1,1,1]],guided:true,color:0},{type:'count',h:[[2,1],[1,0]],color:1},{type:'count',h:[[1,2,1]],color:2},{type:'count',h:[[3,2,1]],color:0}]},
-   {id:'l2',name:'숨은 나무 찾기',desc:'안 보이는 나무도 있어요',emoji:'🔍',probs:[
-     {type:'count',h:[[2,2],[1,1]],color:1},{type:'count',h:[[2,1],[2,1]],color:2},{type:'count',h:[[3,1],[1,1]],color:0},{type:'count',h:[[2,2],[2,1]],color:1}]},
-   {id:'l3',name:'어느 쪽이 많을까',desc:'두 모양을 비교해요',emoji:'⚖️',probs:[
-     {type:'more',a:[[2,1],[1,0]],b:[[1,1,1,1]]},{type:'more',a:[[3,1,1]],b:[[2,2],[1,1]]},{type:'more',a:[[1,1],[1,1]],b:[[3,1]]}]}
+   {id:'l1',name:'보이는 대로 세기',desc:'층별로 세어요',emoji:'🧱',gen:()=>K.makeSet(5,i=>mkCount(i,false),true)},
+   {id:'l2',name:'숨은 나무 찾기',desc:'안 보이는 나무도 있어요',emoji:'🔍',gen:()=>K.makeSet(5,i=>mkCount(i,true))},
+   {id:'l3',name:'어느 쪽이 많을까',desc:'두 모양을 비교해요',emoji:'⚖️',gen:()=>K.makeSet(4,mkMore)}
   ]});
 })();

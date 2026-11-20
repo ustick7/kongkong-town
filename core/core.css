@@ -167,3 +167,35 @@ h1,h2,h3{margin:0;font-weight:400}
 
 .buddy .bulb{animation:bulb 2.4s ease-in-out infinite;transform-origin:60px 10px}
 @keyframes bulb{50%{opacity:.75;transform:scale(1.06)}}
+
+/* ---------- 태블릿·PC: 큰 화면에서는 더 크게, 가로 화면에서는 문제 판과 스티커 판을 나란히 ---------- */
+@media (min-width:700px){
+  #app{max-width:860px}
+  .screen{gap:14px;padding-left:max(24px,env(safe-area-inset-left,0px));padding-right:max(24px,env(safe-area-inset-right,0px))}
+  .buddy{width:96px;height:96px}
+  .bubble{font-size:21px}
+  .qline{font-size:20px}
+  .board{padding:18px 18px 20px;gap:14px}
+  .slot{min-width:130px;min-height:86px}
+  .slot.sm{min-width:76px;min-height:76px}
+  .stk{min-width:82px;padding:8px 10px 6px}
+  .stk .em{font-size:42px}
+  .stk .num{font-size:40px}
+  .stuck{font-size:36px}.stuck .num{font-size:46px}
+  .tray{gap:12px;padding:14px}
+  .topbar .mid{font-size:21px}
+}
+@media (min-width:980px) and (orientation:landscape){
+  #app{max-width:1200px}
+  .screen.play{display:grid;grid-template-columns:minmax(0,1.55fr) minmax(300px,1fr);grid-template-rows:auto auto auto 1fr;align-content:start;column-gap:20px}
+  .screen.play>.topbar,.screen.play>.buddy-row{grid-column:1/-1}
+  .screen.play>.board{grid-column:1;grid-row:3/5;align-self:start}
+  .screen.play>.tray{grid-column:2;grid-row:3;align-content:flex-start;align-self:start;position:sticky;top:12px}
+  .screen.play>.actions{grid-column:2;grid-row:4;align-self:start;flex-wrap:wrap}
+  .screen.play:has(>.tray[style*="none"])>.board{grid-column:1/-1;grid-row:3;max-width:900px;width:100%;justify-self:center}
+  .screen.play:has(>.tray[style*="none"])>.actions{grid-column:1/-1;grid-row:4;max-width:900px;width:100%;justify-self:center}
+}
+@media (hover:hover) and (pointer:fine){
+  .stk:hover{transform:translateY(-2px)}
+  .btn:hover{filter:brightness(1.05)}
+}
