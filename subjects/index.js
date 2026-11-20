@@ -16,3 +16,5 @@ K.subject({id:'way',name:'길콩',desc:'위치·방향',emoji:'🧭',color:'#3FA
   hello:'길콩 집이야! 왼쪽, 오른쪽, 위, 아래! 길을 찾아볼까?'});
 K.subject({id:'clock',name:'시콩',desc:'시계·시간',emoji:'⏰',color:'#E46A8F',hat:'bulb',
   hello:'시콩 집이야! 째깍째깍, 시계를 읽어 볼까?'});
+K.subject({id:'hero',name:'위콩',desc:'우리나라 위인',emoji:'🦸',color:'#C0623B',hat:'grad',
+  hello:'위콩 집이야! 우리나라를 빛낸 위인들을 만나 볼까?'});

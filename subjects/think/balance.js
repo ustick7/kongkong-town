@@ -256,4 +256,5 @@ K.area('think',{id:'balance',name:'무게 비교',desc:'시소로 무겁고 가�
    {id:'l4',name:'두 번 바꾸기',desc:'바꾸고 또 바꿔요',emoji:'🍉➜🍎➜🍓',color:'#E8DEFF',gen:()=>K.makeSet(6,i=>i%2?mkFill(i,true):mkCompare(i,true),true)},
    {id:'l5',name:'누가 제일 무거울까',desc:'시소 두 개로 순서를 찾아요',emoji:'👑',color:'#FFF1B8',gen:()=>K.makeSet(6,mkOrder)}
   ]});
+K.ANSKEY.compare=p=>cmp(sumW(p.L,p.rules),sumW(p.R,p.rules));K.ANSKEY.fill=p=>JSON.stringify(p.give||'');
 })();

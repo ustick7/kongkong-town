@@ -82,7 +82,8 @@ h1,h2,h3{margin:0;font-weight:400}
 .board{background:var(--paper);border-radius:26px;padding:12px 12px 14px;box-shadow:0 6px 0 rgba(61,46,40,.07);display:flex;flex-direction:column;gap:10px}
 .tag{display:inline-block;font-size:15px;padding:3px 11px;border-radius:999px;background:var(--orange);color:#fff}
 .tag.q{background:var(--blue)}
-.qline{font-size:18px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.qline{font-size:18px;line-height:1.5}
+.qline .tag{margin-right:6px;vertical-align:2px}
 .bogi{background:var(--bogi);border:3px dashed #F2CF98;border-radius:20px;padding:8px 10px 6px}
 .hl{box-shadow:0 0 0 5px var(--sun),0 0 22px 6px rgba(255,200,69,.7)!important;animation:hlP 1.2s ease-in-out infinite;border-radius:14px}
 @keyframes hlP{50%{box-shadow:0 0 0 3px var(--sun),0 0 10px 2px rgba(255,200,69,.5)}}
@@ -201,6 +202,7 @@ h1,h2,h3{margin:0;font-weight:400}
   .board{padding:18px 18px 20px;gap:14px}
   .slot{min-width:130px;min-height:86px}
   .slot.sm{min-width:76px;min-height:76px}
+  .frame .slot{width:88px;flex-basis:88px}
   .stk{min-width:82px;padding:8px 10px 6px}
   .stk .em{font-size:42px}
   .stk .num{font-size:40px}

@@ -15,12 +15,15 @@ K.css(`
 .listen:active{transform:translateY(4px);box-shadow:0 2px 0 var(--blue-d)}
 .listen.slow{width:64px;height:64px;font-size:20px;background:var(--paper);color:var(--blue-d);box-shadow:0 5px 0 var(--line);font-family:var(--f-disp)}
 .listen-row{display:flex;gap:14px;align-items:center;justify-content:center}
-.frame{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;align-items:center;font-size:26px;line-height:1.3}
-.frame .slot{min-width:72px;min-height:72px}
+.frame{display:flex;flex-wrap:nowrap;gap:6px;justify-content:center;align-items:center;font-size:26px;line-height:1.3;max-width:100%}
+.frame>span{flex:none}
+/* 빈칸은 줄바꿈하지 않고 화면 폭에 맞춰 함께 작아져요 */
+.frame .slot{min-width:0;width:72px;flex:0 1 72px;min-height:64px;aspect-ratio:1/1;padding:2px}
+.frame .slot .stuck .em{font-size:30px}
 .frame.tight{gap:2px}
 .frame.tight .word{font-size:44px}
 .frame .slot .stuck{font-size:34px}
-.frame .slot.wide{min-width:120px}
+.frame .slot.wide{width:130px;flex-basis:130px;aspect-ratio:auto}
 .stk .en{font-family:'Fredoka','Jua',sans-serif;font-weight:600;font-size:30px;line-height:1.1;color:var(--ink)}
 .stk .ko{font-family:var(--f-disp);font-size:30px;line-height:1.15;color:var(--ink)}
 .stuck .en,.stuck .ko{font-size:34px;color:var(--ink)}
@@ -31,6 +34,15 @@ K.css(`
 .bin .its .chip2{font-size:32px;cursor:pointer;background:var(--paper);border-radius:12px;padding:2px 6px;box-shadow:0 3px 0 var(--line);font-family:var(--f-emoji)}
 .bin .its .chip2 small{display:block;font-size:11px;font-family:var(--f-disp);text-align:center;color:var(--muted)}
 .bin.bad{border-color:var(--red)}
+.speak{background:var(--s-yellow);border-radius:20px;padding:12px;display:flex;flex-direction:column;gap:10px;align-items:center;width:100%;text-align:center}
+.speak .tw{font-family:'Fredoka','Jua',sans-serif;font-weight:600;font-size:40px;line-height:1.1;color:var(--ink)}
+.speak .tw.ko{font-family:var(--f-disp)}
+.speak .row{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;width:100%}
+.speak .row .btn{flex:1 1 140px}
+.speak .heard{font-size:15px;color:var(--muted);min-height:20px}
+.mic{appearance:none;border:0;width:84px;height:84px;border-radius:50%;background:var(--red);color:#fff;font-size:38px;box-shadow:0 6px 0 #B9443D;cursor:pointer}
+.mic.on{animation:micP 1s ease-in-out infinite}
+@keyframes micP{50%{box-shadow:0 0 0 14px rgba(242,102,94,.25),0 6px 0 #B9443D}}
 /* 손글씨 */
 .pad-wrap{position:relative;background:var(--pad);border-radius:18px;box-shadow:inset 0 0 0 3px var(--line);touch-action:none;overflow:hidden}
 .pad-wrap canvas{display:block;width:100%;touch-action:none}
@@ -132,6 +144,37 @@ function write(p,G){
 }
 
 K.TYPES={quiz,sort,write};
+
+/* 따라 말하기: 듣고 → 소리 내어 말하면 마이크로 확인. 마이크를 못 쓰는 기기는 스스로 말했다고 눌러요 */
+const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+const norm=s=>String(s||'').toLowerCase().replace(/[^a-z0-9가-힣]/g,'');
+const lev=(a,b)=>{const d=Array.from({length:a.length+1},(_,i)=>[i]);for(let j=1;j<=b.length;j++)d[0][j]=j;
+  for(let i=1;i<=a.length;i++)for(let j=1;j<=b.length;j++)d[i][j]=Math.min(d[i-1][j]+1,d[i][j-1]+1,d[i-1][j-1]+(a[i-1]===b[j-1]?0:1));return d[a.length][b.length]};
+const heardOk=(alts,target)=>{const t=norm(target);return alts.some(a=>{const x=norm(a);return x===t||x.includes(t)||(t.length>=4&&lev(x,t)<=1)||(t.length>=6&&lev(x,t)<=2)})};
+K.speakPanel=(sp,G,done)=>{const acts=K.$('#acts');if(!acts){done();return}const lang=sp.lang||'en-US';let tries=0,busy=false;
+  const finish=res=>{if(sp.own){G.P.sp=res;done(res);return}K.logSpeak&&K.logSpeak(res);done(res)};
+  acts.innerHTML=`<div class="speak"><div style="font-size:16px">🗣️ 이제 <b>소리 내어</b> 따라 말해 봐!</div><div class="tw ${lang.startsWith('ko')?'ko':''}">${sp.show||sp.text}</div>
+    <div class="row" style="align-items:center"><button class="listen" id="sl" style="width:64px;height:64px;font-size:28px" aria-label="듣기">🔊</button>${SR?'<button class="mic" id="mic" aria-label="말하기">🎤</button>':''}</div>
+    <div class="heard" id="hd">${SR?'🎤를 누르고 크게 말해 봐':'잘 듣고 크게 따라 말해 봐'}</div><div class="row" id="sr2">${SR?'':'<button class="btn green" id="said" disabled>🗣️ 크게 따라 말했어요</button>'}</div></div>`;
+  const play=()=>K.speakLang(sp.text,lang,.8);K.$('#sl').onclick=play;K.later(play,300);
+  if(!SR){K.later(()=>{const b=K.$('#said');if(b)b.disabled=false},2200);K.$('#said').onclick=()=>finish('self');K.say('잘 듣고 크게 따라 말해 봐!');return}
+  K.say('잘 듣고 🎤를 누른 다음 크게 따라 말해 봐!');
+  const giveUp=()=>{K.$('#sr2').innerHTML='<button class="btn green" id="pok">👍 잘 말했어요 (부모님 확인)</button><button class="btn ghost" id="psk">다음에 할게요</button>';
+    K.$('#pok').onclick=()=>finish('parent');K.$('#psk').onclick=()=>finish('skip')};
+  K.$('#mic').onclick=()=>{if(busy)return;busy=true;let r;try{r=new SR()}catch(e){giveUp();return}r.lang=lang;r.interimResults=false;r.maxAlternatives=5;
+    const mic=K.$('#mic');mic.classList.add('on');K.$('#hd').textContent='듣고 있어요… 말해 봐!';let got=false;
+    r.onresult=e=>{got=true;const alts=[...e.results[0]].map(x=>x.transcript);mic.classList.remove('on');busy=false;
+      if(heardOk(alts,sp.text)){K.sfx.good();K.$('#hd').innerHTML=`<b style="color:var(--green-d)">완벽해! 또박또박 잘 말했어!</b>`;K.say('완벽해! 잘 말했어!');K.later(()=>finish(tries?'ok2':'ok'),900)}
+      else{tries++;K.sfx.soft();K.$('#hd').textContent=`'${alts[0]}'(으)로 들렸어. 한 번 더 들어 보고 말해 봐!`;play();if(tries>=2)giveUp()}};
+    r.onerror=e=>{mic.classList.remove('on');busy=false;if(e.error==='not-allowed'||e.error==='service-not-allowed'){K.$('#hd').textContent='마이크를 쓸 수 없어요. 크게 말하고 아래를 눌러요';giveUp()}else{K.$('#hd').textContent='잘 안 들렸어. 다시 🎤를 누르고 말해 봐!';tries++;if(tries>=2)giveUp()}};
+    r.onend=()=>{mic.classList.remove('on');busy=false;if(!got&&K.$('#hd')&&K.$('#hd').textContent.startsWith('듣고'))K.$('#hd').textContent='잘 안 들렸어. 다시 🎤를 누르고 말해 봐!'};
+    try{r.start()}catch(e){busy=false;giveUp();return}
+    K.later(()=>{if(busy&&!got){try{r.abort()}catch(e){}busy=false;mic.classList.remove('on');tries++;const hd=K.$('#hd');if(hd)hd.textContent='잘 안 들렸어. 다시 🎤를 누르고 크게 말해 봐!';if(tries>=2)giveUp()}},8000)};
+};
+/* say: 그림을 보고 듣고, 따라 말하는 것 자체가 문제 */
+function say(p,G){G.html(`<div class="qline"><span class="tag q">문제</span>${p.prompt||'잘 듣고 따라 말해요'}</div>${p.show?`<div class="show">${p.show}</div>`:''}`);G.hideTray();
+  K.speakPanel(Object.assign({own:true},p.talk),G,res=>{if(res==='ok2'||res==='skip'){G.P.wrong++;G.P.picks.push(res==='skip'?'말하기를 건너뜀':'두 번째에 성공')}G.success(p.line||'잘 말했어!')});}
+K.TYPES.say=say;
 
 /* 한글 자모 도구 */
 const CHO='ㄱㄲㄴㄷㄸㄹㅁㅂㅃㅅㅆㅇㅈㅉㅊㅋㅌㅍㅎ',JUNG='ㅏㅐㅑㅒㅓㅔㅕㅖㅗㅘㅙㅚㅛㅜㅝㅞㅟㅠㅡㅢㅣ',JONG=['','ㄱ','ㄲ','ㄳ','ㄴ','ㄵ','ㄶ','ㄷ','ㄹ','ㄺ','ㄻ','ㄼ','ㄽ','ㄾ','ㄿ','ㅀ','ㅁ','ㅂ','ㅄ','ㅅ','ㅆ','ㅇ','ㅈ','ㅊ','ㅋ','ㅌ','ㅍ','ㅎ'];

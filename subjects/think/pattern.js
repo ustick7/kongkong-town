@@ -2,26 +2,26 @@
 (()=>{
 const {E,N}=K;
 K.css(`
-.train{display:flex;flex-wrap:wrap;gap:12px 4px;justify-content:center;align-items:flex-end;padding:6px 0}
-.car{position:relative;width:58px;height:58px;border-radius:14px;background:var(--paper);border:3px solid var(--line);display:flex;align-items:center;justify-content:center;font-size:36px;transition:background .3s}
+.train{display:flex;flex-wrap:wrap;row-gap:10px;gap:4px;max-width:100%;--per:8;justify-content:center;align-items:flex-end;padding:6px 0}
+.car{position:relative;width:58px;flex:0 0 calc((100% - 52px - var(--per) * 4px) / var(--per));max-width:58px;min-width:34px;aspect-ratio:1/1;height:auto;border-radius:14px;background:var(--paper);border:3px solid var(--line);display:flex;align-items:center;justify-content:center;font-size:min(36px,7vw);transition:background .3s}
 .car .em{line-height:1}
 .car.blank{border:3px dashed var(--blue);background:var(--s-blue);color:var(--blue-d);font-family:var(--f-disp);font-size:26px;cursor:pointer}
 .car.blank.filled{border-style:solid}
-.car .stuck{font-size:34px}
+.car .stuck{font-size:min(34px,6.5vw)}
 .car.read{transform:translateY(-8px);transition:transform .15s;background:var(--s-yellow)}
 .car.g0{background:var(--s-orange2);border-color:#F7C08A}.car.g1{background:var(--s-blue2);border-color:#9CCBF3}
-.loco{font-size:44px;line-height:1;margin-right:2px}
-.boxes{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;align-items:flex-end}
-.gbox{position:relative;min-width:66px;min-height:70px;border-radius:14px;background:var(--paper);border:3px solid var(--line);display:flex;flex-wrap:wrap;align-content:center;justify-content:center;padding:4px;font-size:20px;max-width:96px}
+.loco{flex:none;font-size:min(44px,9vw);line-height:1;margin-right:2px}
+.boxes{display:flex;flex-wrap:nowrap;gap:4px;max-width:100%;justify-content:center;align-items:flex-end}
+.gbox{position:relative;min-width:0;flex:0 1 80px;min-height:70px;border-radius:14px;background:var(--paper);border:3px solid var(--line);display:flex;flex-wrap:wrap;align-content:center;justify-content:center;padding:4px;font-size:20px;max-width:96px}
 .gbox.blank{border:3px dashed var(--blue);background:var(--s-blue);color:var(--blue-d);font-family:var(--f-disp);font-size:26px;cursor:pointer}
 .gbox .cnt{position:absolute;bottom:-24px;left:0;right:0;text-align:center;font-family:var(--f-disp);font-size:17px;color:var(--blue-d);animation:pop .3s both}
-.plus{font-family:var(--f-disp);color:var(--orange-d);font-size:16px;align-self:center;animation:pop .35s both;min-width:22px;text-align:center}
+.plus{font-family:var(--f-disp);color:var(--orange-d);font-size:16px;align-self:center;animation:pop .35s both;min-width:14px;flex:none;text-align:center}
 .boxes-wrap{padding-bottom:26px}
-.sq{position:relative;width:62px;height:62px;border-radius:12px;background:var(--paper);border:3px solid var(--line)}
+.sq{position:relative;width:62px;flex:0 1 62px;min-width:36px;aspect-ratio:1/1;height:auto;border-radius:12px;background:var(--paper);border:3px solid var(--line)}
 .sq.blank{border:3px dashed var(--blue);background:var(--s-blue);cursor:pointer}
 .sq .bug{position:absolute;font-size:22px;line-height:1;transition:all .5s}
 .sq .q{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-family:var(--f-disp);font-size:26px;color:var(--blue-d)}
-.stk .sq{width:48px;height:48px;border-width:2px}.stk .sq .bug{font-size:17px}
+.stk .sq{width:48px;height:48px;flex:none;min-width:0;border-width:2px}.stk .sq .bug{font-size:17px}
 .sq.blank .stuck .sq{width:56px;height:56px;border:0;background:none}
 `);
 const C=['tl','tr','br','bl'];
@@ -34,7 +34,7 @@ const cluster=(k,n)=>`<span class="em" style="font-size:${n>6?15:n>3?18:22}px;li
 function repeat(p,G){
   const blanks=p.seq.map((x,i)=>x==='?'?i:-1).filter(i=>i>=0);
   G.html(`<div class="qline"><span class="tag q">문제</span>규칙을 찾아 빈칸에 알맞은 것을 넣어요</div>
-   <div class="train" id="tr"><span class="loco em">🚂</span>${p.seq.map((k,i)=>k==='?'?`<div class="car blank" data-i="${i}">?</div>`:`<div class="car" data-i="${i}"><span class="em">${E(k)}</span></div>`).join('')}</div>`);
+   <div class="train" id="tr" style="--per:${p.seq.length<=8?p.seq.length:Math.ceil(p.seq.length/2)}"><span class="loco em">🚂</span>${p.seq.map((k,i)=>k==='?'?`<div class="car blank" data-i="${i}">?</div>`:`<div class="car" data-i="${i}"><span class="em">${E(k)}</span></div>`).join('')}</div>`);
   blanks.forEach(i=>G.slot(G.board.querySelector(`.car[data-i="${i}"]`),'c'+i));
   G.stickers(p.opts.map(k=>({v:k,html:`<span class="em">${E(k)}</span>`,label:N(k)})));
   const cars=()=>[...G.board.querySelectorAll('.car')];

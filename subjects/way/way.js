@@ -18,8 +18,8 @@ K.css(`
 .grid-map i.rock{background:transparent}
 .grid-map i.step:after{content:'';position:absolute;width:30%;height:30%;border-radius:50%;background:var(--orange);opacity:.75}
 .grid-map i.bad{box-shadow:inset 0 0 0 3px var(--red)}
-.arrows{display:flex;flex-wrap:wrap;gap:6px;justify-content:center}
-.arrows .slot{min-width:58px;min-height:58px;padding:2px}
+.arrows{display:flex;flex-wrap:nowrap;gap:5px;justify-content:center}
+.arrows .slot{min-width:0;width:58px;flex:0 1 58px;aspect-ratio:1/1;min-height:0;padding:2px}
 .arrows .slot .stuck{font-size:30px}
 `);
 const ANI=['🐶','🐱','🐰','🐻','🐼','🐸','🐷','🦊','🐯','🐨','🐵','🐤'];

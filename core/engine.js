@@ -54,7 +54,12 @@ K.pickN=(a,n)=>K.shuffle(a).slice(0,n);
 /* 보기 만들기: 정답 + 헷갈리는 오답들을 섞어서 */
 K.opts=(ans,pool,n=3)=>K.shuffle([ans].concat(K.pickN(pool.filter(x=>String(x)!==String(ans)),n-1)));
 /* 문제 묶음 만들기: 첫 문제는 같이 하는 연습, 나머지는 매번 새로 */
-K.makeSet=(n,fn,guidedFirst)=>Array.from({length:n},(_,i)=>{const p=fn(i);if(guidedFirst&&i===0)p.guided=true;return p});
+/* 같은 답이 연달아 나오면 아이가 생각 없이 찍게 돼서, 바로 앞 문제와 답이 같으면 다시 만들어요 */
+K.ANSKEY={};
+K.ansKey=p=>{if(!p)return '';const f=K.ANSKEY[p.type];if(f)try{return String(f(p))}catch(e){}
+  if(p.ans!=null)return JSON.stringify(p.ans);if(p.tilt!=null)return String(p.tilt);if(p.word)return p.word;return ''};
+K.makeSet=(n,fn,guidedFirst)=>{const out=[];for(let i=0;i<n;i++){let p=fn(i);const prev=out[i-1]&&K.ansKey(out[i-1]);
+    for(let t=0;t<25&&prev&&K.ansKey(p)===prev;t++)p=fn(i);if(guidedFirst&&i===0)p.guided=true;out.push(p)}return out};
 K.el=(html)=>{const t=document.createElement('template');t.innerHTML=html.trim();return t.content.firstElementChild};
 
 /* ---------- 소리 ---------- */
@@ -255,7 +260,9 @@ function makeG(p){
     stars(){const r=G.result();return r==='solo'||r==='practice'?3:(r==='hint'||(r==='retry'&&P.wrong===1))?2:1},
     success(line){if(P.done)return;P.done=true;K.logProb&&K.logProb(P,true,line,G.result());G.hl(null);K.sfx.good();K.confetti(50);const st=G.stars();K.ctx.score.push(st);K.onSolved&&K.onSolved(st);K.later(()=>K.say(line),250);G.trayOff(true);
       const last=K.ctx.pi>=K.ctx.probs.length-1;
-      G.actions([[last?'결과 보기 🎉':'다음 문제 ▶','green pulse',()=>{if(last)K.go('result');else K.go('play',{pi:K.ctx.pi+1})}]])},
+      const next=()=>G.actions([[last?'결과 보기 🎉':'다음 문제 ▶','green pulse',()=>{if(last)K.go('result');else K.go('play',{pi:K.ctx.pi+1})}]]);
+      /* 영어·위인 이름 등은 맞힌 뒤 꼭 소리 내어 따라 말하기 */
+      if(p.speak&&K.speakPanel)K.later(()=>K.speakPanel(p.speak,G,next),900);else next()},
     /* 처음 보는 문제는 한 걸음씩 같이 해 보기 (연습으로 기록) */
     guide(steps){let i=0;G.trayOff(true);P.guiding=true;const acts=$('#acts');
       const step=()=>{const st=steps[i];K.say(typeof st.say==='function'?st.say():st.say);st.act&&st.act();

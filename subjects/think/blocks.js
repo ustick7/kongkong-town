@@ -93,4 +93,5 @@ K.area('think',{id:'blocks',name:'쌓기나무',desc:'숨은 나무까지 세어
    {id:'l2',name:'숨은 나무 찾기',desc:'안 보이는 나무도 있어요',emoji:'🔍',gen:()=>K.makeSet(5,i=>mkCount(i,true))},
    {id:'l3',name:'어느 쪽이 많을까',desc:'두 모양을 비교해요',emoji:'⚖️',gen:()=>K.makeSet(4,mkMore)}
   ]});
+K.ANSKEY.more=p=>total(p.a)>total(p.b)?'A':'B';K.ANSKEY.count=p=>total(p.h);
 })();

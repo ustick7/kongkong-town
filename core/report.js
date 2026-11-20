@@ -66,7 +66,7 @@ const resOf=r=>r.res||(r.ok?(r.wn===0?(r.h?'hint':'solo'):(r.h?'hintretry':'retr
 K.logProb=(P,ok,line,res)=>{const l=K.ctx.level;if(!l)return;const ar=l.area,p=P.p||{};
   const row={t:Date.now(),s:ar.subject.id,a:ar.id,an:ar.name,l:l.id,ln:l.name,i:K.ctx.pi,ok,res:res||(ok?'solo':'fail'),sk:p.skill||'',
     q:strip(p.word||p.text||p.prompt||'').slice(0,60),w:P.picks.filter(Boolean),wn:P.wrong,h:P.hint,ed:P.edits,sec:Math.round((Date.now()-P.t0)/1000),ex:line?K.fmt(line).text:''};
-  if(P.img)row.img=P.img;if(P.img0&&P.img0!==P.img)row.img0=P.img0;if(P.self)row.self=P.self;
+  if(P.img)row.img=P.img;if(P.sp)row.sp=P.sp;if(P.img0&&P.img0!==P.img)row.img0=P.img0;if(P.self)row.self=P.self;
   S.log.push(row);
   /* 리포트에서 다시 푼 문제를 혼자 맞히면 원래 문제에 '고침' 표시 */
   if(ok&&K.ctx.retryOf&&(res==='solo')){const o=S.log.find(x=>x.t===K.ctx.retryOf);if(o)o.fixed=true;K.ctx.retryOf=null}
@@ -75,6 +75,8 @@ K.logProb=(P,ok,line,res)=>{const l=K.ctx.level;if(!l)return;const ar=l.area,p=P
   let n=0;for(let i=S.log.length-1;i>=0;i--)if(S.log[i].img&&++n>60){delete S.log[i].img;delete S.log[i].img0}
   try{K.save()}catch(e){}};
 
+/* 맞힌 뒤 따라 말하기 결과를 방금 기록에 붙여요 */
+K.logSpeak=res=>{const r=S.log[S.log.length-1];if(r&&Date.now()-r.t<120000){r.sp=res;try{K.save()}catch(e){}}};
 const dkey=t=>{const d=new Date(t);return d.getFullYear()+'-'+(d.getMonth()+1)+'-'+d.getDate()};
 const since=r=>{const d=new Date();d.setHours(0,0,0,0);if(r==='today')return d.getTime();if(r==='week'){d.setDate(d.getDate()-6);return d.getTime()}return 0};
 const fmtWhen=t=>{const d=new Date(t);const td=dkey(Date.now())===dkey(t);return (td?'오늘':`${d.getMonth()+1}/${d.getDate()}`)+` ${d.getHours()}:${String(d.getMinutes()).padStart(2,'0')}`};
@@ -136,6 +138,7 @@ K.views.report=a=>{let range=K.ctx.range||'week',sid=K.ctx.rsid||'';const name=S
       <div class="legend">${ORDER.map(k=>`<span><i class="r-${k}"></i>${RES[k]} ${st.cnt[k]}</span>`).join('')}</div>
       <p class="muted" style="font-size:13px;margin:8px 0 0">아이는 답을 자유롭게 고치다가 '다 했어요'를 눌러야 채점돼요. 그래서 끌다가 잘못 놓은 건 틀린 것으로 세지 않아요.</p></div>
     <div class="sheet rsec"><h3>💬 ${sj?sj.name+' ':''}맞춤 코칭</h3><div class="coach">${coach(st,sid)}</div></div>
+    ${speakHTML(st)}
     ${weakHTML(st)}
     <div class="sheet rsec"><h3>기술별 실력 <small>혼자 맞힘 1점 · 도움받아 맞힘 0.5점</small></h3>${skillsHTML(st,sid)}</div>
     ${st.imgs.length?`<div class="sheet rsec"><h3>✍️ 손글씨 받아쓰기 <small>아이가 직접 쓴 글씨예요</small></h3><div class="gal">${st.imgs.slice(0,24).map(r=>`<figure>${r.img0?`<img src="${r.img0}" alt="${r.q} 처음 쓴 글씨" style="opacity:.75;margin-bottom:4px"><div class="muted" style="font-size:12px">↑ 처음 · ↓ 다시 쓴 글씨</div>`:''}<img src="${r.img}" alt="${r.q} 손글씨"><figcaption><b>${r.q}</b><span class="pill2 ${r.self==='same'&&!r.wn?'ok':r.ok?'h':'no'}">${r.self==='same'?(r.wn?'다시 써서 맞힘':'스스로 ⭕'):'스스로 ❌'}</span></figcaption></figure>`).join('')}</div>
@@ -155,6 +158,12 @@ K.views.report=a=>{let range=K.ctx.range||'week',sid=K.ctx.rsid||'';const name=S
     $('#share').onclick=()=>share(st,range,sid)};
   draw();};
 
+function speakHTML(st){const rs=st.all.filter(r=>r.sp);if(!rs.length)return '';const c=k=>rs.filter(r=>k.includes(r.sp)).length;
+  const hard=[...new Set(rs.filter(r=>['ok2','parent','skip'].includes(r.sp)).map(r=>r.q).filter(Boolean))].slice(0,10);
+  return `<div class="sheet rsec"><h3>🗣️ 따라 말하기 <small>듣고 소리 내어 말했는지</small></h3>
+   <div class="legend"><span><i class="r-solo"></i>한 번에 정확히 ${c(['ok'])}</span><span><i class="r-hint"></i>두 번째에 ${c(['ok2'])}</span><span><i class="r-retry"></i>부모님·스스로 확인 ${c(['parent','self'])}</span><span><i class="r-fail"></i>건너뜀 ${c(['skip'])}</span></div>
+   ${hard.length?`<p style="font-size:14px;margin:8px 0 0">발음을 더 연습하면 좋은 말: <b>${hard.join(', ')}</b></p>`:''}
+   <p class="muted" style="font-size:13px;margin:6px 0 0">마이크가 아이 발음을 못 알아들을 수도 있어요. 옆에서 한 번 들어 봐 주세요.</p></div>`}
 function weakHTML(st){const w=st.skills.filter(s=>s.n>=2&&s.m<60).slice(0,3);if(!w.length)return '';
   return `<div class="sheet rsec"><h3>🎯 부족한 부분</h3>${w.map(o=>{const picks=[...new Set(o.w)].slice(0,4);
     return `<div class="weak"><div><b>${o.nm}</b> <span class="muted">(${o.an})</span> · ${o.n}문제 중 혼자 맞힘 ${o.solo}개${o.fail?`, 못 풂 ${o.fail}개`:''}</div>
