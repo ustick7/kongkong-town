@@ -6,7 +6,7 @@
   --wood:#C98A4B; --wood-d:#A86B32; --grass:#DDF0C8; --bogi:#FFF0D6; --sky:#EAF6FF;
   --f-disp:'Jua',system-ui,sans-serif; --f-body:'Gowun Dodum','Jua',system-ui,sans-serif;
   --f-emoji:"Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif;
-  color-scheme:light;
+  color-scheme:only light;
 }
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{margin:0;height:100%;background:var(--cream);color:var(--ink);font-family:var(--f-disp);
