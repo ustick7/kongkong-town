@@ -110,6 +110,8 @@ K.views.settings=a=>{const P=S.parent;
   <div id="ml"></div><div class="set-row"><input type="text" id="mi" maxlength="20" placeholder="새 미션 (예: 🥛 우유 마셨어요)"><button class="btn green" id="ma">추가</button></div>
   <div class="set-row" id="pre"></div>
   <h2 style="margin-top:12px">⏰ 하루 놀이 시간</h2><div class="set-row" id="lim"></div><p class="muted" id="used"></p>
+  <h2 style="margin-top:12px">🎵 위인 노래 가사 (위콩)</h2><p>집에 있는 위인 노래 가사를 붙여 넣으면 가사 속 이름이 빈칸인 문제가 만들어져요. 가사는 이 기기에만 저장돼요.</p>
+  <div class="set-row"><textarea id="lyr" rows="5" style="width:100%;font:inherit;font-size:16px;border-radius:14px;border:2px solid var(--line);padding:10px;background:var(--paper);color:var(--ink)" placeholder="가사를 한 줄씩 붙여 넣어요">${(S.lyrics||'').replace(/</g,'&lt;')}</textarea></div><p class="muted" id="lyc"></p>
   <h2 style="margin-top:12px">🌙 밤 화면 (눈 보호)</h2><p>밤 화면은 어두운 색이라 저녁에 눈이 덜 부셔요. 자동이면 폰이 다크 모드이거나 정한 시각부터 아침 7시까지 밤 화면이 돼요.</p>
   <div class="set-row" id="thm"></div><div class="set-row" id="nf"></div>
   <h2 style="margin-top:12px">🔒 비밀번호</h2><div class="set-row"><button class="btn ghost" id="pc">비밀번호 바꾸기</button></div>
@@ -134,7 +136,7 @@ K.views.settings=a=>{const P=S.parent;
     else if(t.id==='r2'){S.stars={};S.beans=0;S.plant={water:0};S.log=[];S.days={};if(S.play){S.play.used=0;S.play.bonus=0}K.save();K.toast('학습 기록을 지웠어요');$('#rs').innerHTML=RS0}
     else if(t.id==='r4'){try{localStorage.removeItem('kongkong-v1')}catch(e){}location.reload()}
     else if(t.id==='r3'){$('#rs').innerHTML=RS0}
-    else if(t.id==='sv'){if(gate&&!ms.length){K.toast('미션을 하나 이상 넣어 주세요');return}Object.assign(P,{missions:ms,limit:lim,gate,name:$('#nm').value.trim()});K.save();K.toast('저장했어요');K.go('village')}});
+    else if(t.id==='sv'){if(gate&&!ms.length){K.toast('미션을 하나 이상 넣어 주세요');return}Object.assign(P,{missions:ms,limit:lim,gate,name:$('#nm').value.trim()});S.lyrics=$('#lyr').value.slice(0,6000);K.save();K.toast('저장했어요');K.go('village')}});
 };
 
 /* 콩이 화분 */

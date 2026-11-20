@@ -89,6 +89,34 @@ function mkOrder(){let hs;for(let t=0;t<30;t++){hs=K.pickN(H,3);if(new Set(hs.ma
 /* 이름 따라 말하기 */
 function mkTalk(pool){const h=K.pick(pool);return {type:'say',skill:'talk',word:h[0],prompt:'위인 이름을 듣고 <b>크게 따라 말해요</b>',show:card(h),talk:{text:h[0],lang:'ko-KR',show:h[0]},line:`잘했어! ${h[0]}! ${h[3]}!`}}
 
+/* ---- 노래로 외우기 ---- */
+/* 이름 조각: 이름에서 한 글자를 비우고 알맞은 글자 고르기 */
+function mkPiece(){const h=K.pick(H.filter(x=>x[0].length>=2));const i=K.ri(0,h[0].length-1),s=h[0][i];
+  let wrong=K.hangul.confuse(s).filter(x=>x!==s);const pool=[...new Set(H.map(x=>x[0]).join('').split(''))].filter(x=>x!==s);
+  wrong=K.pickN(wrong,1).concat(K.pickN(pool,3)).filter((x,j,a)=>a.indexOf(x)===j).slice(0,2);
+  return {type:'quiz',skill:'piece',word:h[0],prompt:'위인 이름의 빈칸에 알맞은 글자를 놓아요',show:card(h,{name:false}),tight:true,
+    frame:h[0].split('').map((x,j)=>j===i?0:`<span class="word">${x}</span>`),ans:[s],opts:K.shuffle([s].concat(wrong)).map(x=>({v:x,html:`<span class="ko">${x}</span>`})),
+    speak:{text:h[0],lang:'ko-KR',show:h[0]},hints:[`노래를 불러 봐! ${h[3]}… 하면 떠오르는 이름은?`,()=>{K.speakLang(h[0],'ko-KR',.7);K.say('이름을 들려줄게!')}],line:`맞아! ${h[0]}! ${h[4]}`}}
+/* 부모님이 넣은 노래 가사에서 위인 이름을 찾아 빈칸 만들기 (가사는 이 기기에만 저장돼요) */
+const ALIAS={동명왕:'주몽',세종:'세종대왕',광개토:'광개토대왕',원효:'원효대사',단군:'단군왕검',혁거세:'박혁거세',온조:'온조왕',퇴계:'이황',율곡:'이이',석봉:'한석봉',다산:'정약용',백범:'김구',도산:'안창호',추사:'김정희',사임당:'신사임당'};
+const KEYS=H.map(h=>h[0]).concat(Object.keys(ALIAS)).sort((a,b)=>b.length-a.length);
+function lyricLines(){const txt=(K.S.lyrics||'').trim();if(!txt)return [];const out=[];
+  txt.split(/\n+/).map(s=>s.trim()).filter(Boolean).forEach(line=>{const found=[];KEYS.forEach(k=>{let at=line.indexOf(k);while(at>=0){if(!found.some(f=>at<f.at+f.k.length&&f.at<at+k.length))found.push({k,at});at=line.indexOf(k,at+1)}});
+    found.forEach(f=>out.push({line,k:f.k,at:f.at,hero:H.find(h=>h[0]===(ALIAS[f.k]||f.k))}))});return out}
+function mkLyric(i,list){const L=K.pick(list);const others=[...new Set(list.map(x=>x.k))].filter(k=>k!==L.k);
+  const opts=K.shuffle([L.k].concat(K.pickN(others.length>=2?others:KEYS.filter(k=>k!==L.k&&H.find(h=>h[0]===k)),2)));
+  return {type:'quiz',skill:'lyric',word:L.k,prompt:'노래를 부르면서 빈칸에 들어갈 위인을 찾아요 🎵',show:L.hero?`<span class="big">${L.hero[1]}</span>`:'',wrapf:true,
+    frame:[L.line.slice(0,L.at)||'',0,L.line.slice(L.at+L.k.length)||''].filter(x=>x!==''),ans:[L.k],opts:opts.map(k=>({v:k,html:`<span class="hn">${k}</span>`})),wide:true,
+    speak:{text:L.k,lang:'ko-KR',show:L.k},hints:['빈칸 앞뒤 가사를 소리 내어 불러 봐! 다음에 누가 나오지?',L.hero?`${L.hero[3]}… 한 사람이야.`:`이름이 ${L.k[0]}(으)로 시작해.`],
+    line:L.hero?`맞아! ${L.k}! ${L.hero[4]}`:`맞아! ${L.k}!`}}
+function songSet(){const list=lyricLines();if(!list.length)return K.makeSet(6,()=>Object.assign(mkPiece(),{say:'부모님 ⚙️ 설정에서 노래 가사를 넣으면 가사 빈칸 문제가 나와요. 지금은 이름 조각 맞추기!'}));
+  return K.makeSet(Math.min(8,Math.max(5,list.length)),i=>mkLyric(i,list))}
+K.area('hero',{id:'song',name:'노래로 외우기',desc:'이름 조각, 가사 빈칸',emoji:'🎵',color:'#E3F0FF',hello:'위인 노래 알지? 노래를 부르면서 이름을 찾아볼까?',types:{quiz},
+  skills:{piece:'이름 조각 맞추기',lyric:'노래 가사 빈칸'},
+  tip:{t:'노래 가사 넣기',b:`<p>부모님 ⚙️ 설정의 <b>🎵 위인 노래 가사</b> 칸에 가사를 붙여 넣으면, 가사 속 위인 이름이 빈칸이 되는 문제가 만들어져요. 가사는 이 기기에만 저장되고 다른 곳에 올라가지 않아요.</p><p>노래는 <a href="https://www.youtube.com/results?search_query=%ED%95%9C%EA%B5%AD%EC%9D%84+%EB%B9%9B%EB%82%B8+100%EB%AA%85%EC%9D%98+%EC%9C%84%EC%9D%B8%EB%93%A4" target="_blank" rel="noopener">유튜브에서 '한국을 빛낸 100명의 위인들' 찾기</a>로 함께 들어 보세요.</p><div class="say-line">노래 부르다가 빈칸에서 멈춰 볼까? 다음에 누가 나오지?</div>`},
+  levels:[{id:'s1',name:'이름 조각 맞추기',desc:'세종_왕',emoji:'🧩',gen:()=>K.makeSet(6,mkPiece)},
+   {id:'s2',name:'노래 가사 빈칸',desc:'가사 속 이름 찾기',emoji:'🎤',gen:songSet}]});
+
 const mix=(pool,sk)=>()=>K.makeSet(6,i=>i%2?mkWhat(pool,sk):mkWho(pool,sk));
 K.area('hero',{id:'who',name:'위인 이름 익히기',desc:'누가 무엇을 했을까?',emoji:'🦸',color:'#FFE6F0',hello:'노래에 나오는 위인들, 누가 무엇을 했는지 알아볼까?',types:{quiz,say},
   skills:{h0:'나라를 세운 사람',h1:'삼국·남북국 위인',h2:'고려 위인',h3:'조선 위인',h4:'근대·독립운동가',talk:'이름 따라 말하기'},

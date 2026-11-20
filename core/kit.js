@@ -21,6 +21,8 @@ K.css(`
 .frame .slot{min-width:0;width:72px;flex:0 1 72px;min-height:64px;aspect-ratio:1/1;padding:2px}
 .frame .slot .stuck .em{font-size:30px}
 .frame.tight{gap:2px}
+.frame.wrapf{flex-wrap:wrap;row-gap:8px;font-size:22px;line-height:1.6}
+.frame.wrapf>span{flex:0 1 auto}
 .frame.tight .word{font-size:44px}
 .frame .slot .stuck{font-size:34px}
 .frame .slot.wide{width:130px;flex-basis:130px;aspect-ratio:auto}
@@ -68,7 +70,7 @@ function quiz(p,G){
   const n=p.ans.length;const frame=p.frame||Array.from({length:n},(_,i)=>i);
   G.html(`<div class="qline"><span class="tag q">문제</span>${p.prompt}</div>
    ${p.listen?listenHTML():''}${p.show?`<div class="show ${p.showSm?'sm':''}" id="show">${p.show}</div>`:''}
-   <div class="frame ${p.tight?'tight':''}" id="frame">${frame.map(x=>typeof x==='number'?`<div class="slot ${p.wide?'wide':''}" data-k="${x}">?</div>`:`<span>${x}</span>`).join('')}</div>${p.after||''}`);
+   <div class="frame ${p.tight?'tight':''} ${p.wrapf?'wrapf':''}" id="frame">${frame.map(x=>typeof x==='number'?`<div class="slot ${p.wide?'wide':''}" data-k="${x}">?</div>`:`<span>${x}</span>`).join('')}</div>${p.after||''}`);
   G.board.querySelectorAll('.frame .slot').forEach(el=>G.slot(el,'s'+el.dataset.k));
   G.stickers(p.opts.map(o=>typeof o==='object'?o:{v:o,html:K.numHtml(o)}),p.trayLabel);
   if(p.nums)G.tray.classList.add('nums');
