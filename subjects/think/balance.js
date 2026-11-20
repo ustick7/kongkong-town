@@ -165,7 +165,7 @@ function fill(p,G){
   const check=()=>{const have=panItems(ss,'R').length;if(!have){G.say(`오른쪽에 [${p.give}|을] 올려 봐!`);return}
     const st=cmp(need,have);tilt(ss,st);if(st!=='F')K.sfx.thud();
     if(st==='F')G.success(`평평해! [${p.give}] ${need}개가 왼쪽이랑 똑같은 무게야. 대단해!`);
-    else{G.P.wrong++;K.later(()=>{K.sfx.soft();G.say(st==='L'?`아직 왼쪽이 쿵! 오른쪽이 <b>가벼워</b>. [${p.give}|을] 더 올려 볼까?`:`오른쪽이 쿵! 너무 <b>무거워</b>. [${p.give}|을] 조금 빼 볼까?`);
+    else{G.P.wrong++;G.miss(`${have}개 올림`);K.later(()=>{K.sfx.soft();G.say(st==='L'?`아직 왼쪽이 쿵! 오른쪽이 <b>가벼워</b>. [${p.give}|을] 더 올려 볼까?`:`오른쪽이 쿵! 너무 <b>무거워</b>. [${p.give}|을] 조금 빼 볼까?`);
       if(G.P.wrong>=2)K.later(()=>{if(!G.P.done){G.P.hint++;hint(G.P.hint)}},1800)},700)}};
   G.setActs(hint,check,'⚖️ 확인');changed();
   if(!p.guided){G.say(`왼쪽과 똑같은 무게가 되도록 [${p.give}|을] 올리고 <b>확인</b>을 눌러요!`);return}

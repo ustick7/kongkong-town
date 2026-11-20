@@ -89,7 +89,7 @@ function turn(p,G){
   G.html(`<div class="qline"><span class="tag q">문제</span>[ladybug]가 어떻게 움직일까요?</div>
    <div class="train" id="tr">${seq.map((c,i)=>c==='?'?`<div class="sq blank" data-drop="q" data-i="${i}"><span class="q">?</span></div>`:sqHTML(c).replace('class="sq"',`class="sq" data-i="${i}"`)).join('')}</div>`
    .replace('[ladybug]','<span class="em">🐞</span>무당벌레'));
-  G.stickers(C.map(c=>({v:c,html:sqHTML(c)})));
+  G.stickers(C.map(c=>({v:c,html:sqHTML(c),label:{tl:'왼쪽 위',tr:'오른쪽 위',br:'오른쪽 아래',bl:'왼쪽 아래'}[c]})));
   const st=p.step;
   const hint=h=>{
     if(h===1){G.say('무당벌레를 손가락으로 따라가 봐! 한 칸에서 다음 칸으로 갈 때 어디로 움직였어?');G.hl(G.board.querySelectorAll('.sq')[0]);K.later(()=>G.hl(G.board.querySelectorAll('.sq')[1]),900)}

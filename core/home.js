@@ -163,8 +163,8 @@ K.views.garden=a=>{const st=stageOf(S.plant.water);
 K.onSolved=stars=>{S.beans+=stars;K.save();K.toast(`🫘 콩알 ${stars}개 받았어요!`)};
 
 /* 놀이 시간 재기 */
-const FREE=['gate','timeup','setup','settings'];
-setInterval(()=>{if(document.visibilityState!=='visible'||FREE.includes(K.view))return;newDay();S.play.used+=5;
+const FREE=['gate','timeup','setup','settings','report'];
+setInterval(()=>{if(document.visibilityState!=='visible'||FREE.includes(K.view))return;newDay();S.play.used+=5;S.days=S.days||{};S.days[S.play.date]=(S.days[S.play.date]||0)+5;
   if(S.play.used%30===0)K.save();const lim=S.parent.limit;if(lim&&S.play.used>=(lim+S.play.bonus)*60){K.save();K.go('timeup')}},5000);
 
 /* 시작 화면 고르기 */

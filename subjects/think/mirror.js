@@ -51,7 +51,7 @@ function mirror(p,G){
     else{G.say('흐릿한 자국과 다른 칸이 있는지 하나씩 살펴봐!');if(!mg.querySelector('.ghostc'))fold()}};
   const check=()=>{let bad=[];cells.forEach(d=>{const r=+d.dataset.r,c=+d.dataset.c;if(given(r,c))return;if(d.classList.contains('on')!==want(r,c))bad.push(d)});
     if(!bad.length){cells.forEach(d=>d.classList.remove('ghostc'));K.$('.mline').style.opacity='.25';G.success(p.done||'완성! 거울에 비친 것처럼 똑같아!');return}
-    bad.forEach(d=>d.classList.add('bad'));G.wrong(null,hint,`음~ 빨간 테두리 칸을 다시 봐. ${bad.length}칸만 고치면 돼!`)};
+    bad.forEach(d=>d.classList.add('bad'));G.wrong(null,hint,`음~ 빨간 테두리 칸을 다시 봐. ${bad.length}칸만 고치면 돼!`,`${bad.length}칸 틀림`)};
   G.setActs(hint,check,'✔ 다 칠했어요');
   if(p.guided)G.guide([
     {say:'거울 놀이야! 파란 선이 <b>거울</b>이야. 거울에 비치면 반대쪽에 똑같은 모양이 생겨.',act:()=>G.hl('.mline')},

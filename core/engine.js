@@ -119,8 +119,9 @@ document.addEventListener('click',e=>{const t=e.target.closest('[data-drop]');if
 K.clearSel=()=>{sel=null};
 
 /* 스티커: html(보이는 그림), label(아래 글자), v(값) */
+K.pickText=pl=>{if(!pl)return '';const t=(pl.html||'').replace(/<[^>]+>/g,'').trim();return pl.label?(t?t+' '+pl.label:pl.label):(t||String(pl.v))};
 K.sticker=(v,html,label)=>{const d=document.createElement('div');d.className='stk';d.tabIndex=0;d.dataset.v=v;
-  d.innerHTML=html+(label?`<span>${label}</span>`:'');K.bindDrag(d,{kind:'stk',v,html});return d};
+  d.innerHTML=html+(label?`<span>${label}</span>`:'');K.bindDrag(d,{kind:'stk',v,html,label});return d};
 K.stuck=html=>{const s=document.createElement('span');s.className='stuck';s.innerHTML=html;return s};
 K.numHtml=n=>`<span class="num">${n}</span>`;
 
@@ -136,13 +137,13 @@ K.areaMax=a=>a.levels.filter(l=>l.probs).length*3;
 
 /* ---------- 화면 전환 ---------- */
 K.view='village'; K.ctx={};
-K.go=(v,c={})=>{K.clearTimers();try{speechSynthesis.cancel()}catch(e){};sel=null;K.onDrop=null;$$('.modal-bg').forEach(m=>m.remove());
+K.go=(v,c={})=>{if(K.curP&&!K.curP.done&&(K.curP.wrong||K.curP.hint)&&K.logProb)K.logProb(K.curP,false);K.curP=null;K.clearTimers();try{speechSynthesis.cancel()}catch(e){};sel=null;K.onDrop=null;$$('.modal-bg').forEach(m=>m.remove());
   K.view=v;Object.assign(K.ctx,c);K.render();window.scrollTo(0,0)};
 K.views={};
 K.render=()=>{const a=$('#app');a.innerHTML='';K.views[K.view](a)};
 K.topbar=(title,extra='')=>`<div class="topbar"><button class="icon-btn" data-a="back" aria-label="뒤로">←</button><div class="mid">${title}</div>${extra}
   <button class="icon-btn" data-a="voice" aria-label="목소리 켜기/끄기">${K.S.voice?'🔊':'🔇'}</button></div>`;
-K.back={village:null,subject:'village',area:'subject',play:'area',free:'area',result:'area',guide:null,garden:'village',settings:'village'};
+K.back={village:null,subject:'village',area:'subject',play:'area',free:'area',result:'area',guide:null,garden:'village',settings:'village',report:'village'};
 document.addEventListener('click',e=>{const b=e.target.closest('[data-a]');if(!b)return;K.ac();const a=b.dataset.a;
   if(a==='back'){if(K.view==='guide')return K.go(K.ctx.guideFrom||'village');const to=K.back[K.view];if(to)K.go(to)}
   else if(a==='voice'){K.S.voice=!K.S.voice;K.save();b.textContent=K.S.voice?'🔊':'🔇';if(!K.S.voice)try{speechSynthesis.cancel()}catch(e){};K.toast(K.S.voice?'콩이가 읽어 줘요':'목소리를 껐어요')}
@@ -156,7 +157,7 @@ K.showTip=area=>{if(!area||!area.tip)return;const t=area.tip;const m=document.cr
 /* 마을 */
 K.views.village=a=>{
   a.innerHTML=`<div class="screen">
-   <div class="hud"><button class="icon-btn" id="gd" aria-label="콩이 화분">🪴</button><span class="beans">🫘 <b>${K.S.beans||0}</b></span><span class="grow"></span><button class="icon-btn" data-a="voice" aria-label="목소리 켜기/끄기">${K.S.voice?'🔊':'🔇'}</button><button class="icon-btn" id="st" aria-label="부모님 설정">⚙️</button></div>
+   <div class="hud"><button class="icon-btn" id="gd" aria-label="콩이 화분">🪴</button><span class="beans">🫘 <b>${K.S.beans||0}</b></span><span class="grow"></span><button class="icon-btn" data-a="voice" aria-label="목소리 켜기/끄기">${K.S.voice?'🔊':'🔇'}</button><button class="icon-btn" id="rp" aria-label="학습 리포트">📊</button><button class="icon-btn" id="st" aria-label="부모님 설정">⚙️</button></div>
    <div class="brand">${K.BRAND}<small>${K.TAGLINE}</small></div>
    <div class="village"><div class="sun"></div><div class="cloud em">☁️</div>
     <div class="houses">${K.subjects.map((s,i)=>`<button class="house ${s.soon?'soon':''}" data-i="${i}" style="--c:${s.color}">
@@ -168,7 +169,7 @@ K.views.village=a=>{
   $$('.house').forEach(b=>b.onclick=()=>{const s=K.subjects[+b.dataset.i];if(s.soon){K.sfx.soft();K.say(`${s.name} 집은 지금 짓고 있어! 곧 열려요.`);return}
     if(s.href){location.href=s.href;return}K.sfx.pick();K.go('subject',{subj:s})});
   $('#pg').onclick=()=>K.go('guide',{guideFrom:'village'});
-  $('#gd').onclick=()=>K.go('garden');$('#st').onclick=()=>K.parentCheck?K.parentCheck(()=>K.go('settings')):0;
+  $('#gd').onclick=()=>K.go('garden');$('#st').onclick=()=>K.parentCheck?K.parentCheck(()=>K.go('settings')):0;$('#rp').onclick=()=>K.parentCheck(()=>K.go('report',{range:'today'}));
 };
 /* 과목: 영역 고르기 */
 K.views.subject=a=>{const s=K.ctx.subj;
@@ -205,7 +206,7 @@ K.views.play=a=>{
   const fn=ar.types[p.type];if(!fn)throw new Error('문제 종류 없음: '+p.type);fn(p,G);
 };
 function makeG(p){
-  const P={p,hint:0,wrong:0,done:false,usedHint:false};
+  const P={p,hint:0,wrong:0,done:false,usedHint:false,t0:Date.now(),picks:[],last:null};K.curP=P;
   const G={P,p,say:K.say,later:K.later,
     board:$('#board'),tray:$('#tray'),
     html(h){G.board.innerHTML=h;return G.board},
@@ -218,13 +219,15 @@ function makeG(p){
     trayOff(off){G.tray.classList.toggle('off',off)},
     hideTray(){G.tray.style.display='none'},
     hl(sel){$$('.hl').forEach(x=>x.classList.remove('hl'));if(sel){[].concat(sel instanceof NodeList?[...sel]:sel).flatMap(x=>typeof x==='string'?$$(x):[x]).forEach(e=>e&&e.classList&&e.classList.add('hl'))}},
-    drop(fn){K.onDrop=(pl,d,t)=>{if(P.done)return;fn(pl,d,t)}},
+    drop(fn){K.onDrop=(pl,d,t)=>{if(P.done)return;P.last=pl;fn(pl,d,t)}},
+    /* 리포트용: 틀린 내용을 글로 남겨요 */
+    miss(note){P.picks.push(note)},
     stars(){if(P.wrong===0&&!P.usedHint)return 3;if(P.wrong<=1&&P.hint<=2)return 2;return 1},
-    success(line){if(P.done)return;P.done=true;G.hl(null);K.sfx.good();K.confetti(50);K.ctx.score.push(G.stars());K.onSolved&&K.onSolved(G.stars());K.later(()=>K.say(line),250);G.trayOff(true);
+    success(line){if(P.done)return;P.done=true;K.logProb&&K.logProb(P,true,line);G.hl(null);K.sfx.good();K.confetti(50);K.ctx.score.push(G.stars());K.onSolved&&K.onSolved(G.stars());K.later(()=>K.say(line),250);G.trayOff(true);
       const l=K.ctx.level,last=K.ctx.pi>=l.probs.length-1;
       G.actions([[last?'결과 보기 🎉':'다음 문제 ▶','green pulse',()=>{if(last)K.go('result');else K.go('play',{pi:K.ctx.pi+1})}]])},
     /* 틀렸을 때: 꾸짖지 않고, 잠깐 뒤 힌트를 한 단계 올려 줌 */
-    wrong(target,hintFn,line){P.wrong++;K.sfx.soft();if(target){target.classList.remove('shake');void target.offsetWidth;target.classList.add('shake')}
+    wrong(target,hintFn,line,note){P.wrong++;P.picks.push(note||K.pickText(P.last));P.last=null;K.sfx.soft();if(target){target.classList.remove('shake');void target.offsetWidth;target.classList.add('shake')}
       K.say(line||['음~ 다시 생각해 볼까?','아깝다! 같이 살펴보자.','괜찮아, 틀리면서 똑똑해지는 거야!'][(P.wrong-1)%3]);
       if(hintFn)K.later(()=>{if(!P.done){P.hint++;hintFn(P.hint)}},1500)},
     /* 처음 보는 문제는 한 걸음씩 같이 해 보기 */

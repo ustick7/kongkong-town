@@ -58,7 +58,7 @@ function seat(p,G){
       el.querySelector('.st').textContent=r===true?'✓':r===false?'✗':'?';if(r!==true)allOk=false});
     return allOk};
   const place=(k,i)=>{const j=arr.indexOf(k);if(j>=0)arr[j]=null;arr[i]=k;K.sfx.drop();const ok=paint();
-    if(arr.every(Boolean)){if(ok)G.success(`정답! 단서가 모두 ✓ 가 됐어. 하나씩 따져 보니까 풀렸지?`);else G.wrong(G.board.querySelector('.clue.no'),hint,'빨간 ✗ 단서가 있어! 그 단서를 다시 읽어 볼까?')}};
+    if(arr.every(Boolean)){if(ok)G.success(`정답! 단서가 모두 ✓ 가 됐어. 하나씩 따져 보니까 풀렸지?`);else G.wrong(G.board.querySelector('.clue.no'),hint,'빨간 ✗ 단서가 있어! 그 단서를 다시 읽어 볼까?',arr.map(K.E).join(' ')+' 순서로 앉힘')}};
   G.board.addEventListener('click',e=>{const s=e.target.closest('.seat');if(!s||G.P.done||K.$('.stk.sel'))return;const i=+s.dataset.i;if(arr[i]){arr[i]=null;K.sfx.pick();paint()}});
   G.drop((pl,d)=>{if(pl.kind!=='stk'||!d||d[0]!=='s')return;place(pl.v,+d.slice(1))});
   const sure=p.clues.findIndex(c=>c.t==='pos');
