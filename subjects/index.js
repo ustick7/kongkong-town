@@ -12,3 +12,7 @@ K.subject({id:'dict',name:'받콩',desc:'받아쓰기',emoji:'✏️',color:'#FF
   hello:'받콩 집이야! 잘 듣고 또박또박 써 볼까?'});
 K.subject({id:'econ',name:'돈콩',desc:'경제',emoji:'🪙',color:'#E8A200',hat:'bulb',
   hello:'돈콩 집이야! 돈을 세고 가게 놀이를 해 볼까?'});
+K.subject({id:'way',name:'길콩',desc:'위치·방향',emoji:'🧭',color:'#3FA7B5',hat:'sprout',
+  hello:'길콩 집이야! 왼쪽, 오른쪽, 위, 아래! 길을 찾아볼까?'});
+K.subject({id:'clock',name:'시콩',desc:'시계·시간',emoji:'⏰',color:'#E46A8F',hat:'bulb',
+  hello:'시콩 집이야! 째깍째깍, 시계를 읽어 볼까?'});
