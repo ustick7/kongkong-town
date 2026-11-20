@@ -197,7 +197,7 @@ K.views.subject=a=>{const s=K.ctx.subj;
 /* 영역: 단계 고르기 */
 K.views.area=a=>{const ar=K.ctx.area;
   a.innerHTML=`<div class="screen">${K.topbar(ar.name,ar.tip?`<button class="icon-btn" data-a="tip" aria-label="부모님 팁">👪</button>`:'')}${K.buddyRow()}
-   <div class="tiles">${ar.levels.map((l,i)=>{const st=K.levelStars(l);return `<button class="tile" data-i="${i}" style="--c:${l.color||ar.color}">${l.badge?`<span class="badge">${l.badge}</span>`:''}
+   <div class="tiles">${ar.levels.map((l,i)=>{const st=K.levelStars(l);return `<button class="tile" data-i="${i}" style="--c:${l.color||ar.color}">${l.badge?`<span class="badge">${l.badge}</span>`:l.age?`<span class="agechip">${K.AGE_NAME(l.age)}</span>`:''}
      <span class="no">${l.no||(i+1)+'단계'}</span><span class="nm">${l.name}</span><span class="ds">${l.desc||''}</span><span class="em">${l.emoji||''}</span>
      ${K.hasProbs(l)?`<span class="st">${'★'.repeat(st)}${'☆'.repeat(3-st)}</span>`:''}</button>`}).join('')}</div>
    ${ar.tip?`<button class="btn ghost" data-a="tip">👪 이 놀이, 이렇게 설명해 주세요</button>`:''}</div>`;

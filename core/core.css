@@ -150,6 +150,9 @@ h1,h2,h3{margin:0;font-weight:400}
 .tile .ds{font-family:var(--f-body);font-size:14px;opacity:.85;line-height:1.35}
 .tile .em{font-size:30px;margin-top:auto}
 .tile .st{position:absolute;right:12px;bottom:10px;font-size:17px;color:#E8A200}
+.tile .agechip{position:absolute;right:10px;top:10px;background:rgba(255,255,255,.75);color:var(--ink);font-size:12px;border-radius:999px;padding:2px 8px;font-family:var(--f-disp)}
+:root[data-theme="dark"] .tile .agechip{background:rgba(0,0,0,.25)}
+:root[data-theme="dark"] .tile{background:color-mix(in srgb,var(--c,#fff) 24%,var(--paper))}
 .tile .badge{position:absolute;right:10px;top:10px;background:var(--red);color:#fff;font-size:13px;border-radius:999px;padding:3px 9px}
 @media (max-width:370px){.tiles{grid-template-columns:1fr}.tile{min-height:104px}}
 
