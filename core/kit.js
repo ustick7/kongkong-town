@@ -152,7 +152,10 @@ const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
 const norm=s=>String(s||'').toLowerCase().replace(/[^a-z0-9가-힣]/g,'');
 const lev=(a,b)=>{const d=Array.from({length:a.length+1},(_,i)=>[i]);for(let j=1;j<=b.length;j++)d[0][j]=j;
   for(let i=1;i<=a.length;i++)for(let j=1;j<=b.length;j++)d[i][j]=Math.min(d[i-1][j]+1,d[i][j-1]+1,d[i-1][j-1]+(a[i-1]===b[j-1]?0:1));return d[a.length][b.length]};
-const heardOk=(alts,target)=>{const t=norm(target);return alts.some(a=>{const x=norm(a);return x===t||x.includes(t)||(t.length>=4&&lev(x,t)<=1)||(t.length>=6&&lev(x,t)<=2)})};
+const words=s=>String(s||'').toLowerCase().split(/\s+/).map(norm).filter(Boolean);
+/* 문장은 낱말의 3/4 이상이 들리면 통과 (아이 발음과 인식 오차를 감안) */
+const heardOk=(alts,target)=>{const t=norm(target),tw=words(target);return alts.some(a=>{const x=norm(a);if(x===t||x.includes(t)||(t.length>=4&&lev(x,t)<=1)||(t.length>=6&&lev(x,t)<=2))return true;
+  if(tw.length>=3){const aw=words(a);const hit=tw.filter(w=>aw.some(v=>v===w||(w.length>=4&&lev(v,w)<=1))).length;return hit>=Math.ceil(tw.length*.75)}return false})};
 K.speakPanel=(sp,G,done)=>{const acts=K.$('#acts');if(!acts){done();return}const lang=sp.lang||'en-US';let tries=0,busy=false;
   const finish=res=>{if(sp.own){G.P.sp=res;done(res);return}K.logSpeak&&K.logSpeak(res);done(res)};
   acts.innerHTML=`<div class="speak"><div style="font-size:16px">🗣️ 이제 <b>소리 내어</b> 따라 말해 봐!</div><div class="tw ${lang.startsWith('ko')?'ko':''}">${sp.show||sp.text}</div>
