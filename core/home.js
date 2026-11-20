@@ -100,6 +100,8 @@ K.views.timeup=a=>{a.innerHTML=`<div class="screen result"><div style="flex:1"><
   $('#more').onclick=()=>K.parentCheck(()=>{S.play.bonus+=10;K.save();K.go('village')})};
 
 /* 부모님 설정 */
+const RS0='<button class="btn ghost" id="r1">학습 기록만 지우기</button><button class="btn ghost" id="ra">완전히 처음으로</button>';
+const RSQ=(id,msg)=>`<p style="width:100%;margin:0"><b>${msg}</b></p><button class="btn" id="${id}" style="background:var(--red);box-shadow:0 6px 0 #C94A43">정말 지울게요</button><button class="btn ghost" id="r3">취소</button>`;
 K.views.settings=a=>{const P=S.parent;
   a.innerHTML=`<div class="screen">${K.topbar('부모님 설정')}
   <div class="sheet"><h2>👋 아이 이름</h2><div class="set-row"><input type="text" id="nm" maxlength="8" value="${P.name||''}" placeholder="예: 서윤"></div>
@@ -109,7 +111,7 @@ K.views.settings=a=>{const P=S.parent;
   <div class="set-row" id="pre"></div>
   <h2 style="margin-top:12px">⏰ 하루 놀이 시간</h2><div class="set-row" id="lim"></div><p class="muted" id="used"></p>
   <h2 style="margin-top:12px">🔒 비밀번호</h2><div class="set-row"><button class="btn ghost" id="pc">비밀번호 바꾸기</button></div>
-  <h2 style="margin-top:12px">🗑 기록 지우기</h2><p>별점, 콩알, 화분을 처음 상태로 되돌려요.</p><div class="set-row" id="rs"><button class="btn ghost" id="r1">기록 지우기</button></div>
+  <h2 style="margin-top:12px">🗑 기록 지우기</h2><p>이 기기에 저장된 기록을 지우고 처음부터 시작해요. 지운 기록은 되돌릴 수 없어요.</p><div class="set-row" id="rs">${RS0}</div>
   <p style="margin-top:14px"><button class="btn big green" id="sv">저장하고 돌아가기</button></p></div></div>`;
   let ms=P.missions.slice(),lim=P.limit,gate=P.gate;
   const draw=()=>{$('#ml').innerHTML=ms.map((m,i)=>`<div class="mrow"><span>${m}</span><button data-x="${i}" aria-label="지우기">✕</button></div>`).join('')||'<p class="muted">미션이 없어요</p>';
@@ -121,9 +123,11 @@ K.views.settings=a=>{const P=S.parent;
     if(t.dataset.x!=null){ms.splice(+t.dataset.x,1);draw()}else if(t.dataset.m){ms.push(t.dataset.m);draw()}else if(t.dataset.l!=null){lim=+t.dataset.l;draw()}
     else if(t.id==='gate'){gate=!gate;draw()}else if(t.id==='ma'){const v=$('#mi').value.trim();if(v){ms.push(v);$('#mi').value='';draw()}}
     else if(t.id==='pc')K.pinPad('🔒 새 비밀번호','set',pin=>{P.pin=pin;K.save();K.toast('비밀번호를 바꿨어요')});
-    else if(t.id==='r1'){$('#rs').innerHTML='<button class="btn" id="r2" style="background:var(--red);box-shadow:0 6px 0 #C94A43">정말 지울게요</button><button class="btn ghost" id="r3">취소</button>'}
-    else if(t.id==='r2'){S.stars={};S.beans=0;S.plant={water:0};K.save();K.toast('기록을 지웠어요');$('#rs').innerHTML='<button class="btn ghost" id="r1">기록 지우기</button>'}
-    else if(t.id==='r3'){$('#rs').innerHTML='<button class="btn ghost" id="r1">기록 지우기</button>'}
+    else if(t.id==='r1'){$('#rs').innerHTML=RSQ('r2','별점, 콩알, 화분, 리포트 기록, 손글씨 사진을 모두 지워요. 이름·미션·비밀번호는 그대로예요.')}
+    else if(t.id==='ra'){$('#rs').innerHTML=RSQ('r4','이름, 미션, 비밀번호까지 모두 지우고 처음 설치한 상태로 돌아가요.')}
+    else if(t.id==='r2'){S.stars={};S.beans=0;S.plant={water:0};S.log=[];S.days={};if(S.play){S.play.used=0;S.play.bonus=0}K.save();K.toast('학습 기록을 지웠어요');$('#rs').innerHTML=RS0}
+    else if(t.id==='r4'){try{localStorage.removeItem('kongkong-v1')}catch(e){}location.reload()}
+    else if(t.id==='r3'){$('#rs').innerHTML=RS0}
     else if(t.id==='sv'){if(gate&&!ms.length){K.toast('미션을 하나 이상 넣어 주세요');return}Object.assign(P,{missions:ms,limit:lim,gate,name:$('#nm').value.trim()});K.save();K.toast('저장했어요');K.go('village')}});
 };
 
