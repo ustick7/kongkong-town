@@ -41,7 +41,8 @@
 index.html              스크립트 불러오기
 core/engine.js          공통 엔진: 콩이, 소리, 읽어 주기, 끌어다 놓기, 답 칸, 힌트, 채점, 화면 전환
 core/kit.js             여러 과목이 함께 쓰는 문제 틀(quiz, sort, write 손글씨)과 한글 자모 도구
-core/home.js            시작 미션, 비밀번호, 놀이 시간, 콩이 화분
+core/home.js            시작 미션, 비밀번호, 놀이 시간
+core/garden.js          콩이 정원 (화분·수확·도감·꾸미기·오늘의 공부)
 core/report.js          풀이 기록과 과목별 맞춤 리포트
 core/core.css           공통 디자인 (폰·태블릿·PC)
 subjects/index.js       마을의 집(과목) 목록
