@@ -124,6 +124,8 @@ K.views.settings=a=>{const P=S.parent;
   <h2 style="margin-top:12px">⏰ 하루 놀이 시간</h2><div class="set-row" id="lim"></div><p class="muted" id="used"></p>
   <h2 style="margin-top:12px">🎵 위인 노래 가사 (위콩)</h2><p>집에 있는 위인 노래 가사를 붙여 넣으면 가사 속 이름이 빈칸인 문제가 만들어져요. 가사는 이 기기에만 저장돼요.</p>
   <div class="set-row"><textarea id="lyr" rows="5" style="width:100%;font:inherit;font-size:16px;border-radius:14px;border:2px solid var(--line);padding:10px;background:var(--paper);color:var(--ink)" placeholder="가사를 한 줄씩 붙여 넣어요">${(S.lyrics||'').replace(/</g,'&lt;')}</textarea></div><p class="muted" id="lyc"></p>
+  <h2 style="margin-top:12px">✍️ 손글씨 자동 채점</h2><p>무료 채점 주소를 넣으면 콩이가 받아쓰기 글씨를 직접 읽고 글자마다 채점해요. 비워 두거나 인터넷이 안 되면 아이가 정답과 스스로 비교해요. 만드는 방법은 <a href="https://github.com/ustick7/kongkong-town/blob/main/worker/README.md" target="_blank" rel="noopener">안내서</a>에 있어요.</p>
+  <div class="set-row"><input type="text" inputmode="url" autocapitalize="off" spellcheck="false" id="ocr" placeholder="https://kongkong-ocr.○○○.workers.dev" value="${(S.ocrUrl||'').replace(/"/g,'&quot;')}" style="flex:1;min-width:0"><button class="btn ghost" id="ocrt">연결 확인</button></div><p class="muted" id="ocrm"></p>
   <h2 style="margin-top:12px">🌙 밤 화면 (눈 보호)</h2><p>밤 화면은 어두운 색이라 저녁에 눈이 덜 부셔요. 자동이면 폰이 다크 모드이거나 정한 시각부터 아침 7시까지 밤 화면이 돼요.</p>
   <div class="set-row" id="thm"></div><div class="set-row" id="nf"></div>
   <h2 style="margin-top:12px">🔒 비밀번호</h2><div class="set-row"><button class="btn ghost" id="pc">비밀번호 바꾸기</button></div>
@@ -153,7 +155,9 @@ K.views.settings=a=>{const P=S.parent;
     else if(t.id==='r3'){$('#rs').innerHTML=RS0}
     else if(t.id==='ex')exportData();
     else if(t.id==='im')$('#imf').click();
-    else if(t.id==='sv'){if(gate&&!ms.length){K.toast('미션을 하나 이상 넣어 주세요');return}Object.assign(P,{missions:ms,limit:lim,gate,name:$('#nm').value.trim()});S.lyrics=$('#lyr').value.slice(0,6000);K.save();K.toast('저장했어요');K.go('village')}});
+    else if(t.id==='ocrt'){const u=$('#ocr').value.trim();const m=$('#ocrm');if(!/^https:\/\//.test(u)){m.textContent='https:// 로 시작하는 주소를 넣어 주세요';return}m.textContent='확인하는 중…';
+      fetch(u).then(r=>r.json()).then(j=>{if(j&&j.ok&&j.key===false){m.textContent='서버는 찾았지만 GEMINI_KEY가 없어요. 안내서 3단계를 확인해 주세요.'}else if(j&&j.ok){S.ocrUrl=u;K.save();m.innerHTML='<b style="color:var(--green-d)">✅ 연결됐어요! 이제 콩이가 글씨를 읽어요.</b>'}else m.textContent='주소는 열렸지만 채점 서버가 아니에요. 주소를 다시 확인해 주세요.'}).catch(()=>{m.textContent='연결이 안 돼요. 주소와 인터넷을 확인해 주세요.'});return}
+    else if(t.id==='sv'){if(gate&&!ms.length){K.toast('미션을 하나 이상 넣어 주세요');return}Object.assign(P,{missions:ms,limit:lim,gate,name:$('#nm').value.trim()});S.lyrics=$('#lyr').value.slice(0,6000);S.ocrUrl=$('#ocr').value.trim();K.save();K.toast('저장했어요');K.go('village')}});
 };
 
 /* 콩이 화분 */
