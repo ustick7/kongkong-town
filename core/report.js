@@ -61,7 +61,7 @@ const RES={solo:'혼자 맞힘',hint:'힌트 보고 맞힘',retry:'틀린 뒤 �
 const ORDER=['solo','hint','retry','hintretry','fail'];
 const strip=h=>String(h||'').replace(/<[^>]+>/g,'').replace(/\s+/g,' ').trim();
 /* 옛 기록(결과 종류가 없던 때)도 읽을 수 있게 */
-const resOf=r=>r.pc==='no'?'fail':r.pc==='ok'&&r.ok0===false?'retry':r.res||(r.ok?(r.wn===0?(r.h?'hint':'solo'):(r.h?'hintretry':'retry')):'fail');
+const resOf=r=>r.pc==='no'?'fail':r.pc==='ok'?(r.res==='pending'?(r.wn?'retry':'solo'):r.ok0===false?'retry':r.res||'solo'):r.res||(r.ok?(r.wn===0?(r.h?'hint':'solo'):(r.h?'hintretry':'retry')):'fail');
 
 /* 기록 남기기 */
 K.logProb=(P,ok,line,res)=>{const l=K.ctx.level;if(!l)return;const ar=l.area,p=P.p||{};
@@ -90,7 +90,7 @@ const skillName=r=>{const a=areaOf(r);return (a&&a.skills&&a.skills[r.sk])||r.ln
 
 function stats(range,sid){
   const from=since(range);const all=S.log.filter(r=>r.t>=from&&(!sid||r.s===sid));
-  const rows=all.filter(r=>resOf(r)!=='practice');
+  const rows=all.filter(r=>resOf(r)!=='practice'&&resOf(r)!=='pending');
   const cnt={};ORDER.forEach(k=>cnt[k]=0);rows.forEach(r=>cnt[resOf(r)]++);
   const days=S.days||{};let playSec=0;Object.entries(days).forEach(([k,v])=>{const [y,m,d]=k.split('-').map(Number);if(new Date(y,m-1,d).getTime()>=from)playSec+=v});
   if(sid)playSec=all.reduce((a,r)=>a+(r.sec||0),0);
@@ -99,7 +99,7 @@ function stats(range,sid){
     const k=resOf(r);o.n++;o.pts+=k==='solo'?1:k==='fail'?0:.5;if(k==='solo')o.solo++;if(k==='fail')o.fail++;o.l[r.l]=(o.l[r.l]||0)+1;o.last=Math.max(o.last,r.t);if(r.w.length)o.w.push(...r.w.slice(0,2))});
   const skills=Object.values(sk).map(o=>Object.assign(o,{m:pct(o.pts,o.n)})).sort((x,y)=>x.m-y.m||y.n-x.n);
   const miss=rows.filter(r=>resOf(r)!=='solo').slice().reverse();
-  const imgs=all.filter(r=>r.img).slice().reverse();
+  const imgs=all.filter(r=>r.img).slice().reverse().sort((x,y)=>(resOf(y)==='pending')-(resOf(x)==='pending'));
   return {all,rows,cnt,playSec,skills,miss,imgs};
 }
 const level=m=>m>=80?['good','잘해요']:m>=50?['mid','연습 중']:['low','도움 필요'];
@@ -142,8 +142,8 @@ K.views.report=a=>{let range=K.ctx.range||'week',sid=K.ctx.rsid||'';const name=S
     ${speakHTML(st)}
     ${weakHTML(st)}
     <div class="sheet rsec"><h3>기술별 실력 <small>혼자 맞힘 1점 · 도움받아 맞힘 0.5점</small></h3>${skillsHTML(st,sid)}</div>
-    ${st.imgs.length?`<div class="sheet rsec"><h3>✍️ 손글씨 받아쓰기 <small>아이가 직접 쓴 글씨예요</small></h3><div class="gal">${st.imgs.slice(0,24).map(r=>`<figure>${r.img0?`<img src="${r.img0}" alt="${r.q} 처음 쓴 글씨" style="opacity:.75;margin-bottom:4px"><div class="muted" style="font-size:12px">↑ 처음 · ↓ 다시 쓴 글씨</div>`:''}<img src="${r.img}" alt="${r.q} 손글씨"><figcaption><b>${r.q}</b><span class="pill2 ${r.pc==='no'?'no':r.pc==='ok'?'ok':(r.self==='same'||r.ocr!=null||r.self==='parent')&&r.ok&&!r.wn?'ok':r.ok?'h':'no'}">${r.pc==='no'?'부모님 ❌':r.pc==='ok'?'부모님 ⭕':r.self==='parent'?'부모님 ⭕':r.ocr!=null?(r.ok?(r.wn?'다시 써서 맞힘':'콩이 채점 ⭕'):'콩이 채점 ❌'):r.self==='same'?(r.wn?'다시 써서 맞힘':'스스로 ⭕'):'스스로 ❌'}</span></figcaption>${r.mk?`<div class="muted" style="font-size:12px">${r.ocr!=null?'콩이가 읽은 글자: '+r.ocr:'아이 표시: '+r.mk}</div>`:''}<div class="pcrow"><button class="btn ghost ${r.pc==='ok'?'on':''}" data-pc="ok" data-t="${r.t}">⭕ 맞아요</button><button class="btn ghost ${r.pc==='no'?'on':''}" data-pc="no" data-t="${r.t}">❌ 틀렸어요</button></div></figure>`).join('')}</div>
-      <p class="muted" style="font-size:13px;margin:8px 0 0">손글씨는 아이가 정답과 글자마다 스스로 비교해요. 사진을 보고 <b>⭕ 맞아요 / ❌ 틀렸어요</b>를 눌러 주시면 그 결과로 리포트가 바뀌고, 틀린 건 '다시 볼 문제'에 들어가요.</p></div>`:''}
+    ${st.imgs.length?`<div class="sheet rsec"><h3>✍️ 손글씨 받아쓰기 <small>아이가 직접 쓴 글씨예요</small></h3>${(n=>n?`<p style="margin:0 0 8px"><b style="color:var(--orange)">👪 확인을 기다리는 글씨가 ${n}개 있어요.</b> 사진을 보고 ⭕/❌를 눌러 주세요.</p>`:'')(st.imgs.filter(r=>resOf(r)==='pending').length)}<div class="gal">${st.imgs.slice(0,24).map(r=>`<figure>${r.img0?`<img src="${r.img0}" alt="${r.q} 처음 쓴 글씨" style="opacity:.75;margin-bottom:4px"><div class="muted" style="font-size:12px">↑ 처음 · ↓ 다시 쓴 글씨</div>`:''}<img src="${r.img}" alt="${r.q} 손글씨"><figcaption><b>${r.q}</b><span class="pill2 ${r.pc==='no'?'no':r.pc==='ok'?'ok':r.res==='pending'?'h':(r.self==='same'||r.ocr!=null||r.self==='parent')&&r.ok&&!r.wn?'ok':r.ok?'h':'no'}">${r.pc==='no'?'부모님 ❌':r.pc==='ok'?'부모님 ⭕':r.res==='pending'?'확인 기다림':r.self==='parent'?'부모님 ⭕':r.ocr!=null?(r.ok?(r.wn?'다시 써서 맞힘':'콩이 채점 ⭕'):'콩이 채점 ❌'):r.self==='same'?(r.wn?'다시 써서 맞힘':'스스로 ⭕'):'스스로 ❌'}</span></figcaption>${r.mk?`<div class="muted" style="font-size:12px">${r.ocr!=null?'콩이가 읽은 글자: '+r.ocr:'아이 표시: '+r.mk}</div>`:''}<div class="pcrow"><button class="btn ghost ${r.pc==='ok'?'on':''}" data-pc="ok" data-t="${r.t}">⭕ 맞아요</button><button class="btn ghost ${r.pc==='no'?'on':''}" data-pc="no" data-t="${r.t}">❌ 틀렸어요</button></div></figure>`).join('')}</div>
+      <p class="muted" style="font-size:13px;margin:8px 0 0">콩이(AI)가 못 읽은 손글씨는 '확인 기다림'으로 남고, 부모님이 ⭕를 눌러야 콩알을 받아요. 아이가 혼자 누르는 것으로는 콩알이 나오지 않아요. 사진을 보고 <b>⭕ 맞아요 / ❌ 틀렸어요</b>를 눌러 주시면 그 결과로 리포트가 바뀌고, 틀린 건 '다시 볼 문제'에 들어가요.</p></div>`:''}
     <div class="sheet rsec"><h3>🔁 다시 볼 문제 <small>혼자 맞히지 못한 문제</small></h3>
      ${st.miss.length?st.miss.slice(0,30).map(r=>{const k=resOf(r);return `<div class="miss"><div class="hd">${r.an} · ${r.ln}
        <span class="pill2 ${k==='fail'?'no':k==='hint'?'h':'no'}">${RES[k]}</span>${r.h?`<span class="pill2 h">힌트 ${r.h}번</span>`:''}${r.fixed?'<span class="pill2 fx">다시 풀어서 고침 ✓</span>':''}<span class="when">${fmtWhen(r.t)} · ${mins(r.sec)}</span></div>
@@ -156,7 +156,7 @@ K.views.report=a=>{let range=K.ctx.range||'week',sid=K.ctx.rsid||'';const name=S
     a.querySelector('.stabs').onclick=e=>{const b=e.target.closest('[data-s]');if(b){sid=b.dataset.s;K.ctx.rsid=sid;draw()}};
     a.querySelectorAll('[data-retry]').forEach(b=>b.onclick=()=>{const r=S.log.find(x=>x.t===+b.dataset.retry);retry(r)});
     a.querySelectorAll('[data-prac]').forEach(b=>b.onclick=()=>{const o=st.skills.find(x=>x.key===b.dataset.prac);practice(o)});
-    a.querySelectorAll('[data-pc]').forEach(b=>b.onclick=()=>{const r=S.log.find(x=>x.t===+b.dataset.t);if(!r)return;if(r.ok0===undefined)r.ok0=r.ok;r.pc=r.pc===b.dataset.pc?undefined:b.dataset.pc;r.ok=r.pc==='no'?false:r.pc==='ok'?true:r.ok0;try{K.save()}catch(e){}draw()});
+    a.querySelectorAll('[data-pc]').forEach(b=>b.onclick=()=>{const r=S.log.find(x=>x.t===+b.dataset.t);if(!r)return;if(r.ok0===undefined)r.ok0=r.ok;r.pc=r.pc===b.dataset.pc?undefined:b.dataset.pc;r.ok=r.pc==='no'?false:r.pc==='ok'?true:r.ok0;if(r.res==='pending'){const want=r.pc==='ok'?(r.wn?1:2):0,had=r.bean||0;if(want!==had){S.beans=Math.max(0,(S.beans||0)+want-had);r.bean=want;if(want>had)K.toast(`🫘 콩알 ${want}개를 아이에게 줬어요`)}}try{K.save()}catch(e){}draw()});
     $('#share').onclick=()=>share(st,range,sid)};
   draw();};
 

@@ -214,7 +214,7 @@ K.views.free=a=>{const l=K.ctx.level;a.innerHTML=`<div class="screen">${K.topbar
    기록: solo 혼자 맞힘 / hint 힌트 보고 맞힘 / retry 다시 해서 맞힘 / hintretry 힌트+다시 / practice 같이 한 연습 / fail 못 풀고 나감 */
 K.levelProbs=l=>typeof l.gen==='function'?l.gen():l.probs;
 K.hasProbs=l=>!!(l.probs||l.gen);
-K.play=(l,o={})=>K.go('play',Object.assign({level:l,probs:K.levelProbs(l),pi:0,score:[],retry:false,retryOf:null},o));
+K.play=(l,o={})=>K.go('play',Object.assign({level:l,probs:K.levelProbs(l),pi:0,score:[],pend:0,retry:false,retryOf:null},o));
 K.views.play=a=>{
   const l=K.ctx.level, ar=l.area, probs=K.ctx.probs, p=probs[K.ctx.pi];
   const dots=probs.map((_,i)=>`<i class="${i<K.ctx.pi?'done':i===K.ctx.pi?'on':''}"></i>`).join('');
@@ -263,6 +263,9 @@ function makeG(p){
       const next=()=>G.actions([[last?'결과 보기 🎉':'다음 문제 ▶','green pulse',()=>{if(last)K.go('result');else K.go('play',{pi:K.ctx.pi+1})}]]);
       /* 영어·위인 이름 등은 맞힌 뒤 꼭 소리 내어 따라 말하기 */
       if(p.speak&&K.speakPanel)K.later(()=>K.speakPanel(p.speak,G,next),900);else next()},
+    /* 채점할 수 없는 답(손글씨 스스로 비교)은 '확인 기다림'으로 남기고 별·콩알을 주지 않아요. 부모님이 리포트에서 확인하면 받아요 */
+    pending(line){if(P.done)return;P.done=true;P.pending=true;K.logProb&&K.logProb(P,false,line,'pending');G.hl(null);K.ctx.pend=(K.ctx.pend||0)+1;K.later(()=>K.say(line),150);G.trayOff(true);
+      const last=K.ctx.pi>=K.ctx.probs.length-1;G.actions([[last?'결과 보기':'다음 문제 ▶','green pulse',()=>{if(last)K.go('result');else K.go('play',{pi:K.ctx.pi+1})}]])},
     /* 처음 보는 문제는 한 걸음씩 같이 해 보기 (연습으로 기록) */
     guide(steps){let i=0;G.trayOff(true);P.guiding=true;const acts=$('#acts');
       const step=()=>{const st=steps[i];K.say(typeof st.say==='function'?st.say():st.say);st.act&&st.act();
@@ -276,16 +279,16 @@ function makeG(p){
   G.board.addEventListener('click',e=>{const t=e.target.closest('[data-slot].filled');if(!t||P.done||document.querySelector('.stk.sel'))return;G.setSlot(t.dataset.slot,null)});
   return G;
 }
-K.views.result=a=>{const sc=K.ctx.score,l=K.ctx.level,ar=l.area;const avg=Math.max(1,Math.round(sc.reduce((x,y)=>x+y,0)/Math.max(1,sc.length)));
-  K.S.stars[starKey(l)]=Math.max(K.levelStars(l),avg);K.save();
+K.views.result=a=>{const sc=K.ctx.score,l=K.ctx.level,ar=l.area;const pend=K.ctx.pend||0;const avg=sc.length?Math.max(1,Math.round(sc.reduce((x,y)=>x+y,0)/sc.length)):0;
+  if(avg)K.S.stars[starKey(l)]=Math.max(K.levelStars(l),avg);K.save();
   const nx=ar.levels[l.idx+1];
   a.innerHTML=`<div class="screen result">${K.topbar(ar.name)}<div style="flex:1"></div><div class="buddy lg">${K.buddySvg(K.curHat())}</div>
    <div class="big-stars">${[1,2,3].map(i=>`<span class="pop ${i>avg?'off':''}" style="animation-delay:${i*.25}s">⭐</span>`).join('')}</div>
    <div class="bubble" id="say" style="flex:none;width:100%"></div>
    ${nx?`<button class="btn big green" id="nx">다음: ${nx.name} ▶</button>`:''}
    <button class="btn ghost big" id="again">다시 하기</button><button class="btn ghost big" id="mp">다른 놀이 고르기</button><div style="flex:1"></div></div>`;
-  K.confetti(80);K.sfx.good();
-  K.say(avg===3?`${l.name} 완벽해! 혼자서 생각하는 힘이 쑥쑥 자랐어!`:avg===2?`${l.name} 끝! 힌트를 잘 써서 해냈어. 대단해!`:`${l.name} 끝까지 해냈어! 다시 하면 더 쉬워질 거야.`);
+  if(avg){K.confetti(80);K.sfx.good()}
+  if(pend)K.say(`${l.name} 끝까지 썼어! ${avg?'':''}부모님이 글씨를 확인하면 ${avg?'남은 ':''}별과 콩알을 받을 수 있어.`);else K.say(avg===3?`${l.name} 완벽해! 혼자서 생각하는 힘이 쑥쑥 자랐어!`:avg===2?`${l.name} 끝! 힌트를 잘 써서 해냈어. 대단해!`:`${l.name} 끝까지 해냈어! 다시 하면 더 쉬워질 거야.`);
   nx&&($('#nx').onclick=()=>nx.free?K.go('free',{level:nx}):K.play(nx));
   $('#again').onclick=()=>K.play(l);$('#mp').onclick=()=>K.go('subject');
 };

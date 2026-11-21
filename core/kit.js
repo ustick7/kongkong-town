@@ -55,7 +55,7 @@ K.css(`
 .compare{display:grid;grid-template-columns:1fr;gap:6px;text-align:center}
 .compare .answord{font-family:var(--f-disp);font-size:40px;letter-spacing:6px;color:var(--green-d);background:var(--s-green);border-radius:14px;padding:6px}
 .compare img{width:100%;border-radius:12px;background:var(--s-white);box-shadow:inset 0 0 0 2px var(--line)}
-.selfcheck{display:flex;gap:10px}
+.selfcheck{display:flex;gap:10px}.selfcheck.col{flex-direction:column}
 .sylchk{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin:4px 0 6px}
 .syl{appearance:none;border:0;cursor:pointer;min-width:58px;padding:6px 8px;border-radius:14px;background:var(--s-white);box-shadow:inset 0 0 0 3px var(--line),0 4px 0 var(--line);font-family:inherit;color:var(--ink);display:flex;flex-direction:column;align-items:center}
 .syl small{font-size:12px;color:var(--red)}.syl b{font-family:var(--f-disp);font-weight:400;font-size:28px;line-height:1.1}.syl i{font-style:normal;font-size:18px}
@@ -157,28 +157,28 @@ function write(p,G){
     K.sfx.soft();K.say(`아까워! ${bad.join(', ')}${K.josa(bad[bad.length-1],'이')} 정답이랑 달라. 다시 써 보자!`);
     $('#again2').onclick=()=>retryWrite(bad);
     $('#pok2').onclick=()=>K.parentCheck(()=>{G.P.self='parent';G.P.ocrFix=1;G.success(p.line||`잘했어! ${p.word}!`)})}
-  function retryWrite(bad){G.P.wrong++;G.P.picks.push(`다르게 쓴 글자: ${bad.join(', ')}`);G.P.img0=G.P.img0||G.P.img;
-    $('#cmp').innerHTML=`<div class="compare"><div class="answord">${p.word}</div><div style="font-size:16px">${p.tip?p.tip+' ':''}<b>${bad.join(', ')}</b>${K.josa(bad[bad.length-1],'을')} 잘 보고 한 번 더 써 볼까?</div></div>`;
+  function retryWrite(bad){G.P.wrong++;G.P.picks.push(bad.length?`다르게 쓴 글자: ${bad.join(', ')}`:'정답과 다르게 씀');G.P.img0=G.P.img0||G.P.img;
+    $('#cmp').innerHTML=`<div class="compare"><div class="answord">${p.word}</div><div style="font-size:16px">${p.tip?p.tip+' ':''}${bad.length?`<b>${bad.join(', ')}</b>${K.josa(bad[bad.length-1],'을')} 잘 보고 `:'정답을 잘 보고 '}한 번 더 써 볼까?</div></div>`;
     stage='write';strokes=[];redraw();pw.style.pointerEvents='';$('#undo').disabled=false;$('#clr').disabled=false;
     K.later(()=>{const c=K.$('#cmp');if(c&&stage==='write')c.innerHTML='<div class="compare"><div class="muted">이번엔 정답을 안 보고 다시 써 봐!</div></div>'},3000);
-    G.actions(G._acts);G.refresh();K.say(`괜찮아! ${bad.join(', ')}${K.josa(bad[bad.length-1],'을')} 기억하고 다시 써 보자.`)}
-  /* 정답을 보여 줄 때는 칭찬하지 않아요. 아이가 글자마다 ⭕/❌를 표시하고 '다 비교했어요'를 눌러야 결과가 나와요 */
-  function showCompare(pre=''){K.$('#acts').innerHTML='';pw.style.pointerEvents='none';$('#undo').disabled=true;$('#clr').disabled=true;
-    const mk=sy.map(()=>null);
+    G.actions(G._acts);G.refresh();K.say(bad.length?`괜찮아! ${bad.join(', ')}${K.josa(bad[bad.length-1],'을')} 기억하고 다시 써 보자.`:'스스로 찾아낸 게 대단해! 정답을 기억하고 다시 써 보자.')}
+  /* 자동 채점이 안 될 때: 정답을 보여 주고 아이가 비교해요. 아이 혼자 누르는 ⭕로는 별·콩알을 주지 않아요.
+     고쳐 쓰거나, 부모님이 그 자리에서 확인하거나, '확인 기다림'으로 넘어가서 부모님이 리포트에서 확인해요 */
+  function showCompare(pre=''){K.$('#acts').innerHTML='';pw.style.pointerEvents='none';$('#undo').disabled=true;$('#clr').disabled=true;G.P.self='wait';
     $('#cmp').innerHTML=`<div class="compare"><div class="muted" style="font-size:15px">정답</div><div class="answord">${p.word}</div>
-      <div style="font-size:16px">내가 쓴 글자와 <b>한 글자씩</b> 비교해 봐. 글자를 누르면 ⭕, 한 번 더 누르면 ❌!</div>
-      <div class="sylchk">${sy.map((c,i)=>`<button class="syl" data-i="${i}" disabled><b>${c}</b><i>?</i></button>`).join('')}</div>
-      <div class="selfcheck"><button class="btn blue" id="done2" disabled>✔ 다 비교했어요</button></div></div>`;
-    K.say(pre+'정답이랑 내가 쓴 글씨를 비교해 볼까? 글자마다 똑같은지 표시해 봐!');
-    const bs=[...K.$('#cmp').querySelectorAll('.syl')];
-    const upd=()=>{bs.forEach((b,i)=>{b.classList.toggle('o',mk[i]==='o');b.classList.toggle('x',mk[i]==='x');b.querySelector('i').textContent=mk[i]==='o'?'⭕':mk[i]==='x'?'❌':'?'});
-      $('#done2').disabled=mk.some(m=>!m)};
+      <div style="font-size:16px">내가 쓴 글씨와 <b>한 글자씩</b> 비교해 봐. 다른 글자가 있으면 고쳐 쓰자!</div>
+      <div class="selfcheck col"><button class="btn blue" id="fix" disabled>✏️ 다른 글자가 있어요, 고쳐 쓸래요</button>
+      <button class="btn ghost" id="pchk" disabled>👪 부모님께 확인받기</button>
+      <button class="btn ghost" id="later" disabled style="font-size:15px">➡️ 다음으로 (나중에 부모님이 확인해요)</button></div></div>`;
+    K.say(pre+'정답이랑 내가 쓴 글씨를 한 글자씩 비교해 봐! 부모님이 확인해 주시면 콩알을 받아.');
     /* 바로 이어서 누른 손가락이 버튼에 닿지 않게 잠깐 기다려요 */
-    K.later(()=>bs.forEach(b=>b.disabled=false),900);
-    bs.forEach((b,i)=>b.onclick=()=>{mk[i]=mk[i]==='o'?'x':'o';K.sfx.pick();upd()});
-    $('#done2').onclick=()=>{G.P.marks=mk.map((m,i)=>(m==='o'?'⭕':'❌')+sy[i]).join(' ');
-      if(mk.every(m=>m==='o')){G.P.self='same';$('#done2').disabled=true;bs.forEach(b=>b.disabled=true);G.success(p.line||`잘했어! ${p.word}, 맞춤법 대장!`);return}
-      const bad=sy.filter((c,i)=>mk[i]==='x');G.P.self='diff';retryWrite(bad)}}
+    K.later(()=>['fix','pchk','later'].forEach(id=>{const b=$('#'+id);if(b)b.disabled=false}),1200);
+    $('#fix').onclick=()=>{G.P.self='diff';retryWrite([])};
+    $('#later').onclick=()=>{G.P.self='wait';G.pending('부모님이 확인해 주시면 별이랑 콩알을 받을 수 있어!')};
+    $('#pchk').onclick=()=>K.parentCheck(()=>{$('#cmp').querySelector('.selfcheck').innerHTML=`<div class="muted" style="font-size:15px;text-align:center">👪 부모님 판정</div>
+        <button class="btn green" id="pok3">⭕ 맞게 썼어요</button><button class="btn" id="pno3" style="background:var(--red);box-shadow:0 6px 0 #C94A43">❌ 틀린 글자가 있어요</button>`;
+      $('#pok3').onclick=()=>{G.P.self='parent';G.success(p.line||`잘했어! ${p.word}, 맞춤법 대장!`)};
+      $('#pno3').onclick=()=>{G.P.self='diff';retryWrite([])}})}
   G.say(p.sayKo||'잘 듣고 칸에 또박또박 써 봐! 다 쓰면 <b>다 썼어요</b>를 눌러요.');
 }
 
