@@ -88,6 +88,7 @@ const HATS={
 };
 K.buddySvg=(hat)=>{hat=hat||'sprout';return `<svg viewBox="0 -14 120 134" aria-hidden="true">
 <ellipse cx="60" cy="116" rx="30" ry="4" fill="rgba(0,0,0,.1)"/>
+${K.wearSvg?K.wearSvg('b'):''}
 <path d="M46 104 q-2 10 -10 10 h12Z M74 104 q2 10 10 10 h-12Z" fill="#6DAE4E"/>
 <path d="M60 18 C88 16 102 40 98 66 C95 90 84 108 60 108 C34 108 22 92 22 66 C22 40 32 20 60 18Z" fill="#9AD27A"/>
 <path d="M60 18 C88 16 102 40 98 66 C96 80 92 90 86 98 C90 84 90 60 78 44 C70 32 60 26 46 22 C50 19 55 18 60 18Z" fill="#86C466"/>
@@ -99,7 +100,7 @@ K.buddySvg=(hat)=>{hat=hat||'sprout';return `<svg viewBox="0 -14 120 134" aria-h
 <g class="lid"><ellipse cx="46" cy="52" rx="8" ry="8" fill="#9AD27A"/><ellipse cx="74" cy="52" rx="8" ry="8" fill="#9AD27A"/></g>
 <ellipse cx="36" cy="64" rx="6" ry="4" fill="#FF9DB5" opacity=".7"/><ellipse cx="84" cy="64" rx="6" ry="4" fill="#FF9DB5" opacity=".7"/>
 <path d="M52 64 q8 8 16 0" stroke="#3D2E28" stroke-width="3" fill="none" stroke-linecap="round"/>
-${HATS[hat]||''}</svg>`};
+${HATS[hat]||''}${K.wearSvg?K.wearSvg('f'):''}</svg>`};
 K.curHat=()=>{const c=K.ctx;if(K.view==='village'||K.view==='guide')return 'sprout';const s=(c.level&&c.level.area.subject)||(c.area&&c.area.subject)||c.subj;return (s&&s.hat)||'sprout'};
 K.buddyRow=()=>`<div class="buddy-row"><div class="buddy">${K.buddySvg(K.curHat())}</div><div class="bubble" id="say" role="status"></div></div>`;
 let lastLine='';
@@ -169,7 +170,7 @@ K.showTip=area=>{if(!area||!area.tip)return;const t=area.tip;const m=document.cr
 /* 마을 */
 K.views.village=a=>{
   a.innerHTML=`<div class="screen">
-   <div class="hud"><button class="icon-btn" id="gd" aria-label="콩이 화분">🪴</button><span class="beans">🫘 <b>${K.S.beans||0}</b></span><span class="grow"></span><button class="icon-btn" data-a="voice" aria-label="목소리 켜기/끄기">${K.S.voice?'🔊':'🔇'}</button><button class="icon-btn" id="rp" aria-label="학습 리포트">📊</button><button class="icon-btn" id="st" aria-label="부모님 설정">⚙️</button></div>
+   <div class="hud"><button class="icon-btn" id="gd" aria-label="콩이 정원" style="position:relative">🪴${K.gardenAlert&&K.gardenAlert()?'<i class="gdot"></i>':''}</button><span class="beans">🫘 <b>${K.S.beans||0}</b></span><span class="grow"></span><button class="icon-btn" data-a="voice" aria-label="목소리 켜기/끄기">${K.S.voice?'🔊':'🔇'}</button><button class="icon-btn" id="rp" aria-label="학습 리포트">📊</button><button class="icon-btn" id="st" aria-label="부모님 설정">⚙️</button></div>
    <div class="brand">${K.BRAND}<small>${K.TAGLINE}</small></div>
    <div class="village"><div class="sun"></div><div class="cloud em">☁️</div>
     <div class="houses">${K.subjects.map((s,i)=>`<button class="house ${s.soon?'soon':''}" data-i="${i}" style="--c:${s.color}">

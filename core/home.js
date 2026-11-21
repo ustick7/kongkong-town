@@ -150,7 +150,7 @@ K.views.settings=a=>{const P=S.parent;
     else if(t.id==='pc')K.pinPad('🔒 새 비밀번호','set',pin=>{P.pin=pin;K.save();K.toast('비밀번호를 바꿨어요')});
     else if(t.id==='r1'){$('#rs').innerHTML=RSQ('r2','별점, 콩알, 화분, 리포트 기록, 손글씨 사진을 모두 지워요. 이름·미션·비밀번호는 그대로예요.')}
     else if(t.id==='ra'){$('#rs').innerHTML=RSQ('r4','이름, 미션, 비밀번호까지 모두 지우고 처음 설치한 상태로 돌아가요.')}
-    else if(t.id==='r2'){S.stars={};S.beans=0;S.plant={water:0};S.log=[];S.days={};if(S.play){S.play.used=0;S.play.bonus=0}K.save();K.toast('학습 기록을 지웠어요');$('#rs').innerHTML=RS0}
+    else if(t.id==='r2'){S.stars={};S.beans=0;S.plant={water:0};S.garden={kind:0,done:[],own:[],acc:'',pot:'',deco:[],goal:{day:'',got:false},pets:0};S.log=[];S.days={};if(S.play){S.play.used=0;S.play.bonus=0}K.save();K.toast('학습 기록을 지웠어요');$('#rs').innerHTML=RS0}
     else if(t.id==='r4'){try{localStorage.removeItem('kongkong-v1')}catch(e){}location.reload()}
     else if(t.id==='r3'){$('#rs').innerHTML=RS0}
     else if(t.id==='ex')exportData();
@@ -160,37 +160,7 @@ K.views.settings=a=>{const P=S.parent;
     else if(t.id==='sv'){if(gate&&!ms.length){K.toast('미션을 하나 이상 넣어 주세요');return}Object.assign(P,{missions:ms,limit:lim,gate,name:$('#nm').value.trim()});S.lyrics=$('#lyr').value.slice(0,6000);S.ocrUrl=$('#ocr').value.trim();K.save();K.toast('저장했어요');K.go('village')}});
 };
 
-/* 콩이 화분 */
-const STAGES=[[0,'씨앗'],[1,'새싹'],[3,'떡잎'],[6,'줄기'],[10,'꽃봉오리'],[15,'꽃'],[21,'콩꼬투리']];
-const stageOf=w=>STAGES.filter(s=>w>=s[0]).length-1;
-const COST=3;
-function potSvg(st){
-  const stem=[0,30,55,85,110,120,125][st];const top=230-stem;
-  const leaf=(x,y,s,f)=>`<path d="M130 ${y} q${s*28} -18 ${s*44} 0 q${-s*16} 14 ${-s*44} 0Z" fill="${f||'#7CC95E'}"/>`;
-  let plant='';
-  if(st===0)plant=`<ellipse cx="130" cy="222" rx="12" ry="9" fill="#C9A26B"/><path d="M124 220 q6 -6 12 0" stroke="#A47E4C" stroke-width="2" fill="none"/>`;
-  else{plant=`<path d="M130 230 C128 ${230-stem/2} 134 ${top+20} 130 ${top}" stroke="#5AA845" stroke-width="7" fill="none" stroke-linecap="round"/>`;
-    plant+=leaf(130,top+6,1)+leaf(130,top+6,-1,'#8FD873');
-    if(st>=3)plant+=leaf(130,top+40,1,'#6DBB52')+leaf(130,top+52,-1,'#7CC95E');
-    if(st>=4)plant+=leaf(130,top+75,1,'#8FD873');
-    if(st===4)plant+=`<ellipse cx="130" cy="${top-10}" rx="10" ry="14" fill="#FFB0C4"/><path d="M122 ${top-2} q8 6 16 0" stroke="#5AA845" stroke-width="4" fill="none"/>`;
-    if(st>=5)plant+=[0,72,144,216,288].map(a=>`<ellipse cx="130" cy="${top-24}" rx="9" ry="16" fill="#FF9DB5" transform="rotate(${a} 130 ${top-10})"/>`).join('')+`<circle cx="130" cy="${top-10}" r="9" fill="#FFC845"/>`;
-    if(st>=6)plant+=`<path d="M150 ${top+60} q24 6 30 34 q-20 -4 -30 -34Z" fill="#7CC95E"/><circle cx="160" cy="${top+72}" r="4" fill="#C9EBB0"/><circle cx="167" cy="${top+82}" r="4" fill="#C9EBB0"/><circle cx="173" cy="${top+91}" r="3.5" fill="#C9EBB0"/>`;}
-  return `<svg class="pot" viewBox="0 0 260 330" aria-label="콩이 화분: ${STAGES[st][1]}"><g class="sway">${plant}</g>
-   <path d="M70 228 h120 l-14 88 h-92Z" fill="#E07A4F"/><rect x="62" y="218" width="136" height="22" rx="8" fill="#F08F62"/><ellipse cx="130" cy="229" rx="58" ry="6" fill="#7A5236"/>
-   <g transform="translate(96 252) scale(.55)">${K.buddySvg('sprout').replace(/<svg[^>]*>|<\/svg>/g,'')}</g></svg>`;
-}
-K.views.garden=a=>{const st=stageOf(S.plant.water);
-  a.innerHTML=`<div class="screen">${K.topbar('콩이 화분')}<div class="hud" style="justify-content:center"><span class="beans">🫘 콩알 <b id="bn">${S.beans}</b>개</span><span class="beans">💧 ${S.plant.water}번</span></div>
-   ${K.buddyRow()}<div class="board" style="position:relative"><div class="pot-wrap" id="pw">${potSvg(st)}</div>
-   <div class="stage-bar">${STAGES.map((s,i)=>`<span class="${i<=st?'on':''}">${s[1]}</span>`).join('')}</div></div>
-   <button class="btn big blue" id="wt">💧 물 주기 (콩알 ${COST}개)</button><button class="btn ghost" id="pl">생각 놀이 하러 가기 ▶</button></div>`;
-  const next=STAGES[st+1];
-  K.say(st===6?'우와! 콩꼬투리가 열렸어! 콩이 화분을 다 키웠어. 정말 대단해!':`지금은 <b>${STAGES[st][1]}</b>야. 물을 ${next[0]-S.plant.water}번 더 주면 <b>${next[1]}</b>${K.josa(next[1],'로')} 자라! 문제를 풀면 콩알을 받아.`);
-  $('#wt').onclick=()=>{if(S.beans<COST){K.sfx.soft();K.say(`콩알이 ${COST-S.beans}개 모자라! 생각 놀이에서 문제를 풀면 콩알을 받을 수 있어.`);return}
-    S.beans-=COST;S.plant.water++;K.save();const d=document.createElement('span');d.className='drop-water';d.textContent='💧';d.style.left='48%';d.style.top='30%';$('.board').appendChild(d);K.sfx.poof();
-    setTimeout(()=>{const ns=stageOf(S.plant.water);if(ns>st){K.confetti(70);K.sfx.good()}K.render();if(ns>st)K.later(()=>K.say(`쑥쑥! <b>${STAGES[ns][1]}</b>${K.josa(STAGES[ns][1],'로')} 자랐어! 고마워!`),300)},900)};
-  $('#pl').onclick=()=>K.go('subject',{subj:K.subjects.find(s=>!s.soon)})};
+/* 콩이 화분은 core/garden.js */
 
 /* 문제를 맞히면 콩알 받기 */
 K.onSolved=stars=>{S.beans+=stars;K.save();K.toast(`🫘 콩알 ${stars}개 받았어요!`)};
