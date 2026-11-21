@@ -54,19 +54,20 @@ K.css(`
 .gal figure{margin:0;background:var(--s-white);border-radius:12px;padding:6px;box-shadow:inset 0 0 0 2px var(--line)}
 .gal img{width:100%;display:block;border-radius:8px}
 .gal figcaption{font-size:14px;display:flex;justify-content:space-between;gap:4px;align-items:center;margin-top:4px}
+.pcrow{display:flex;gap:4px;margin-top:4px}.pcrow .btn{flex:1;font-size:13px;padding:5px 4px;border-radius:10px;min-height:0}.pcrow .btn.on{box-shadow:inset 0 0 0 2px var(--blue);background:var(--s-blue)}
 .gal figcaption b{font-family:var(--f-disp);font-weight:400;font-size:17px}
 `);
 const RES={solo:'혼자 맞힘',hint:'힌트 보고 맞힘',retry:'틀린 뒤 고쳐 맞힘',hintretry:'힌트+고쳐 맞힘',fail:'못 풀고 나감'};
 const ORDER=['solo','hint','retry','hintretry','fail'];
 const strip=h=>String(h||'').replace(/<[^>]+>/g,'').replace(/\s+/g,' ').trim();
 /* 옛 기록(결과 종류가 없던 때)도 읽을 수 있게 */
-const resOf=r=>r.res||(r.ok?(r.wn===0?(r.h?'hint':'solo'):(r.h?'hintretry':'retry')):'fail');
+const resOf=r=>r.pc==='no'?'fail':r.pc==='ok'&&r.ok0===false?'retry':r.res||(r.ok?(r.wn===0?(r.h?'hint':'solo'):(r.h?'hintretry':'retry')):'fail');
 
 /* 기록 남기기 */
 K.logProb=(P,ok,line,res)=>{const l=K.ctx.level;if(!l)return;const ar=l.area,p=P.p||{};
   const row={t:Date.now(),s:ar.subject.id,a:ar.id,an:ar.name,l:l.id,ln:l.name,i:K.ctx.pi,ok,res:res||(ok?'solo':'fail'),sk:p.skill||'',
     q:strip(p.word||p.text||p.prompt||'').slice(0,60),w:P.picks.filter(Boolean),wn:P.wrong,h:P.hint,ed:P.edits,sec:Math.round((Date.now()-P.t0)/1000),ex:line?K.fmt(line).text:''};
-  if(P.img)row.img=P.img;if(P.sp)row.sp=P.sp;if(P.img0&&P.img0!==P.img)row.img0=P.img0;if(P.self)row.self=P.self;
+  if(P.img)row.img=P.img;if(P.sp)row.sp=P.sp;if(P.img0&&P.img0!==P.img)row.img0=P.img0;if(P.self)row.self=P.self;if(P.marks)row.mk=P.marks;
   S.log.push(row);
   /* 리포트에서 다시 푼 문제를 혼자 맞히면 원래 문제에 '고침' 표시 */
   if(ok&&K.ctx.retryOf&&(res==='solo')){const o=S.log.find(x=>x.t===K.ctx.retryOf);if(o)o.fixed=true;K.ctx.retryOf=null}
@@ -141,8 +142,8 @@ K.views.report=a=>{let range=K.ctx.range||'week',sid=K.ctx.rsid||'';const name=S
     ${speakHTML(st)}
     ${weakHTML(st)}
     <div class="sheet rsec"><h3>기술별 실력 <small>혼자 맞힘 1점 · 도움받아 맞힘 0.5점</small></h3>${skillsHTML(st,sid)}</div>
-    ${st.imgs.length?`<div class="sheet rsec"><h3>✍️ 손글씨 받아쓰기 <small>아이가 직접 쓴 글씨예요</small></h3><div class="gal">${st.imgs.slice(0,24).map(r=>`<figure>${r.img0?`<img src="${r.img0}" alt="${r.q} 처음 쓴 글씨" style="opacity:.75;margin-bottom:4px"><div class="muted" style="font-size:12px">↑ 처음 · ↓ 다시 쓴 글씨</div>`:''}<img src="${r.img}" alt="${r.q} 손글씨"><figcaption><b>${r.q}</b><span class="pill2 ${r.self==='same'&&!r.wn?'ok':r.ok?'h':'no'}">${r.self==='same'?(r.wn?'다시 써서 맞힘':'스스로 ⭕'):'스스로 ❌'}</span></figcaption></figure>`).join('')}</div>
-      <p class="muted" style="font-size:13px;margin:8px 0 0">손글씨는 아이가 정답과 스스로 비교해요. 사진을 보고 맞춤법이 정말 맞는지 확인해 주세요.</p></div>`:''}
+    ${st.imgs.length?`<div class="sheet rsec"><h3>✍️ 손글씨 받아쓰기 <small>아이가 직접 쓴 글씨예요</small></h3><div class="gal">${st.imgs.slice(0,24).map(r=>`<figure>${r.img0?`<img src="${r.img0}" alt="${r.q} 처음 쓴 글씨" style="opacity:.75;margin-bottom:4px"><div class="muted" style="font-size:12px">↑ 처음 · ↓ 다시 쓴 글씨</div>`:''}<img src="${r.img}" alt="${r.q} 손글씨"><figcaption><b>${r.q}</b><span class="pill2 ${r.pc==='no'?'no':r.pc==='ok'?'ok':r.self==='same'&&!r.wn?'ok':r.ok?'h':'no'}">${r.pc==='no'?'부모님 ❌':r.pc==='ok'?'부모님 ⭕':r.self==='same'?(r.wn?'다시 써서 맞힘':'스스로 ⭕'):'스스로 ❌'}</span></figcaption>${r.mk?`<div class="muted" style="font-size:12px">아이 표시: ${r.mk}</div>`:''}<div class="pcrow"><button class="btn ghost ${r.pc==='ok'?'on':''}" data-pc="ok" data-t="${r.t}">⭕ 맞아요</button><button class="btn ghost ${r.pc==='no'?'on':''}" data-pc="no" data-t="${r.t}">❌ 틀렸어요</button></div></figure>`).join('')}</div>
+      <p class="muted" style="font-size:13px;margin:8px 0 0">손글씨는 아이가 정답과 글자마다 스스로 비교해요. 사진을 보고 <b>⭕ 맞아요 / ❌ 틀렸어요</b>를 눌러 주시면 그 결과로 리포트가 바뀌고, 틀린 건 '다시 볼 문제'에 들어가요.</p></div>`:''}
     <div class="sheet rsec"><h3>🔁 다시 볼 문제 <small>혼자 맞히지 못한 문제</small></h3>
      ${st.miss.length?st.miss.slice(0,30).map(r=>{const k=resOf(r);return `<div class="miss"><div class="hd">${r.an} · ${r.ln}
        <span class="pill2 ${k==='fail'?'no':k==='hint'?'h':'no'}">${RES[k]}</span>${r.h?`<span class="pill2 h">힌트 ${r.h}번</span>`:''}${r.fixed?'<span class="pill2 fx">다시 풀어서 고침 ✓</span>':''}<span class="when">${fmtWhen(r.t)} · ${mins(r.sec)}</span></div>
@@ -155,6 +156,7 @@ K.views.report=a=>{let range=K.ctx.range||'week',sid=K.ctx.rsid||'';const name=S
     a.querySelector('.stabs').onclick=e=>{const b=e.target.closest('[data-s]');if(b){sid=b.dataset.s;K.ctx.rsid=sid;draw()}};
     a.querySelectorAll('[data-retry]').forEach(b=>b.onclick=()=>{const r=S.log.find(x=>x.t===+b.dataset.retry);retry(r)});
     a.querySelectorAll('[data-prac]').forEach(b=>b.onclick=()=>{const o=st.skills.find(x=>x.key===b.dataset.prac);practice(o)});
+    a.querySelectorAll('[data-pc]').forEach(b=>b.onclick=()=>{const r=S.log.find(x=>x.t===+b.dataset.t);if(!r)return;if(r.ok0===undefined)r.ok0=r.ok;r.pc=r.pc===b.dataset.pc?undefined:b.dataset.pc;r.ok=r.pc==='no'?false:r.pc==='ok'?true:r.ok0;try{K.save()}catch(e){}draw()});
     $('#share').onclick=()=>share(st,range,sid)};
   draw();};
 
