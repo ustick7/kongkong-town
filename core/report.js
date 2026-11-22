@@ -150,14 +150,14 @@ K.views.report=a=>{let range=K.ctx.range||'week',sid=K.ctx.rsid||'';const name=S
        ${r.q?`<div class="ex">문제: ${r.q}</div>`:''}
        ${r.w.length?`<div class="pk">틀렸던 답: ${r.w.slice(0,4).map(x=>`<s>${x}</s>`).join(' → ')}</div>`:''}${r.ex?`<div class="ex">정답 풀이: ${r.ex}</div>`:''}
        ${r.fixed?'':`<button class="btn blue" data-retry="${r.t}">비슷한 문제 다시 풀기</button>`}</div>`}).join(''):'<p class="muted">다시 볼 문제가 없어요. 잘했어요! 👏</p>'}</div>
-    <button class="btn big green" id="share">📤 리포트 보내기 (카톡·문자)</button>
-    <p class="muted" style="font-size:13px;text-align:center;margin:0">기록은 이 기기에만 저장돼요. 다른 기기에서는 보이지 않아요.</p></div>`;
+    <div class="noshot" style="display:flex;flex-direction:column;gap:8px"><button class="btn big green" id="share">🖼️ 리포트 그대로 보내기 (카톡)</button><button class="btn ghost" id="sharet">📝 글로 짧게 보내기</button>
+    <p class="muted" style="font-size:13px;text-align:center;margin:0">이 화면을 그림으로 만들어 보내요. 기록은 이 기기에만 저장돼요.</p></div></div>`;
     a.querySelector('.rtabs').onclick=e=>{const b=e.target.closest('[data-r]');if(b){range=b.dataset.r;K.ctx.range=range;draw()}};
     a.querySelector('.stabs').onclick=e=>{const b=e.target.closest('[data-s]');if(b){sid=b.dataset.s;K.ctx.rsid=sid;draw()}};
     a.querySelectorAll('[data-retry]').forEach(b=>b.onclick=()=>{const r=S.log.find(x=>x.t===+b.dataset.retry);retry(r)});
     a.querySelectorAll('[data-prac]').forEach(b=>b.onclick=()=>{const o=st.skills.find(x=>x.key===b.dataset.prac);practice(o)});
     a.querySelectorAll('[data-pc]').forEach(b=>b.onclick=()=>{const r=S.log.find(x=>x.t===+b.dataset.t);if(!r)return;if(r.ok0===undefined)r.ok0=r.ok;r.pc=r.pc===b.dataset.pc?undefined:b.dataset.pc;r.ok=r.pc==='no'?false:r.pc==='ok'?true:r.ok0;if(r.res==='pending'){const want=r.pc==='ok'?(r.wn?1:2):0,had=r.bean||0;if(want!==had){S.beans=Math.max(0,(S.beans||0)+want-had);r.bean=want;if(want>had)K.toast(`🫘 콩알 ${want}개를 아이에게 줬어요`)}}try{K.save()}catch(e){}draw()});
-    $('#share').onclick=()=>share(st,range,sid)};
+    $('#share').onclick=()=>shareImg(a,st,range,sid);$('#sharet').onclick=()=>share(st,range,sid)};
   draw();};
 
 function speakHTML(st){const rs=st.all.filter(r=>r.sp);if(!rs.length)return '';const c=k=>rs.filter(r=>k.includes(r.sp)).length;
@@ -187,6 +187,30 @@ function retry(r){const l=r&&findLevel(r);if(!l){K.toast('이 문제를 찾을 �
 function practice(o){const ar=o&&subj(o.s).areas.find(x=>x.id===o.a);if(!ar)return;const lid=Object.entries(o.l).sort((x,y)=>y[1]-x[1])[0][0];const l=ar.levels.find(x=>x.id===lid);if(!l)return;
   const probs=Array.from({length:3},()=>similar(l,o.sk,0));K.go('play',{level:l,subj:ar.subject,area:ar,probs,pi:0,score:[],retry:true,retryOf:null})}
 
+/* 리포트 화면을 그대로 그림(PNG)으로 만들어 카톡 등으로 보내요. 길면 여러 장으로 나눠요 */
+let h2c=null;
+/* 우리 사이트에 같이 올린 html2canvas(MIT)를 먼저 쓰고, 안 되면 cdnjs에서 받아요 */
+const addJs=src=>new Promise((ok,no)=>{const sc=document.createElement('script');sc.src=src;sc.onload=()=>window.html2canvas?ok(window.html2canvas):no(new Error('load'));sc.onerror=()=>{sc.remove();no(new Error('load'))};document.head.appendChild(sc)});
+const loadH2C=()=>h2c||(h2c=window.html2canvas?Promise.resolve(window.html2canvas):addJs('core/vendor/html2canvas.min.js').catch(()=>addJs('https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js')).catch(e=>{h2c=null;throw e}));
+async function shareImg(a,st,range,sid){const b=$('#share');const lbl=b.textContent;b.disabled=true;b.textContent='🖼️ 그림 만드는 중…';
+  try{const h=await loadH2C();const el=a.querySelector('.screen');
+    const bg=getComputedStyle(document.body).backgroundColor||'#FFF8EE';
+    const H=el.scrollHeight,W=Math.max(390,el.scrollWidth);
+    /* 폰에서 또렷하게 2배로 그리되, 아이폰 캔버스 한도(약 1,600만 화소)를 넘지 않게 줄여요 */
+    const scale=Math.max(1,Math.min(2,Math.sqrt(15e6/(W*H))));
+    const cv=await h(el,{scale,backgroundColor:bg,useCORS:true,logging:false,windowWidth:W,onclone:d=>{const st=d.createElement('style');st.textContent='*,*::before,*::after{animation:none!important;transition:none!important}';d.head.appendChild(st)},
+      ignoreElements:n=>n.classList&&(n.classList.contains('noshot')||n.classList.contains('icon-btn')||n.hasAttribute('data-retry')||n.hasAttribute('data-prac')||n.classList.contains('pcrow')||n.classList.contains('toast'))});
+    /* 한 장이 너무 길면 카톡에서 흐려져서 나눠요 */
+    const n=Math.ceil(cv.height/(1500*scale)),part=Math.ceil(cv.height/n),parts=[];for(let y=0;y<cv.height;y+=part){const c=document.createElement('canvas');c.width=cv.width;c.height=Math.min(part,cv.height-y);
+      const x=c.getContext('2d');x.fillStyle=bg;x.fillRect(0,0,c.width,c.height);x.drawImage(cv,0,y,cv.width,c.height,0,0,cv.width,c.height);parts.push(c)}
+    const name=(S.parent&&S.parent.name)||'';const day=new Date().toISOString().slice(0,10);
+    const files=await Promise.all(parts.map((c,i)=>new Promise(r=>c.toBlob(bl=>r(new File([bl],`콩콩마을리포트_${name}${day}${parts.length>1?'_'+(i+1):''}.png`,{type:'image/png'})),'image/png'))));
+    K.lastShot=files;
+    if(navigator.canShare&&navigator.canShare({files})){await navigator.share({files,title:'콩콩마을 리포트'}).catch(e=>{if(e&&e.name!=='AbortError')throw e})}
+    else{files.forEach(f=>{const u=URL.createObjectURL(f);const l=document.createElement('a');l.href=u;l.download=f.name;document.body.appendChild(l);l.click();l.remove();setTimeout(()=>URL.revokeObjectURL(u),4000)});
+      K.toast(`리포트 그림 ${files.length}장을 저장했어요. 카톡에서 사진으로 보내 주세요`)}}
+  catch(e){K.toast('그림을 만들지 못해서 글로 보낼게요');share(st,range,sid)}
+  finally{const bb=$('#share');if(bb){bb.disabled=false;bb.textContent=lbl}}}
 function share(st,range,sid){const name=S.parent&&S.parent.name;const rl={today:'오늘',week:'최근 7일',all:'전체'}[range];const sj=sid&&subj(sid);const n=st.rows.length;
   let t=`🫘 콩콩마을 ${name?name+' ':''}${sj?sj.name+' ':''}${rl} 리포트\n`;
   t+=`푼 문제 ${n}개 · 혼자 맞힘 ${pct(st.cnt.solo,n)}% · 힌트 ${st.cnt.hint+st.cnt.hintretry}문제 · ${mins(st.playSec)}\n`;
