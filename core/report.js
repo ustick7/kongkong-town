@@ -194,15 +194,28 @@ const addJs=src=>new Promise((ok,no)=>{const sc=document.createElement('script')
 const loadH2C=()=>h2c||(h2c=window.html2canvas?Promise.resolve(window.html2canvas):addJs('core/vendor/html2canvas.min.js').catch(()=>addJs('https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js')).catch(e=>{h2c=null;throw e}));
 async function shareImg(a,st,range,sid){const b=$('#share');const lbl=b.textContent;b.disabled=true;b.textContent='🖼️ 그림 만드는 중…';
   try{const h=await loadH2C();const el=a.querySelector('.screen');
-    const bg=getComputedStyle(document.body).backgroundColor||'#FFF8EE';
-    const H=el.scrollHeight,W=Math.max(390,el.scrollWidth);
-    /* 폰에서 또렷하게 2배로 그리되, 아이폰 캔버스 한도(약 1,600만 화소)를 넘지 않게 줄여요 */
-    const scale=Math.max(1,Math.min(2,Math.sqrt(15e6/(W*H))));
-    const cv=await h(el,{scale,backgroundColor:bg,useCORS:true,logging:false,windowWidth:W,onclone:d=>{const st=d.createElement('style');st.textContent='*,*::before,*::after{animation:none!important;transition:none!important}';d.head.appendChild(st)},
-      ignoreElements:n=>n.classList&&(n.classList.contains('noshot')||n.classList.contains('icon-btn')||n.hasAttribute('data-retry')||n.hasAttribute('data-prac')||n.classList.contains('pcrow')||n.classList.contains('toast'))});
-    /* 한 장이 너무 길면 카톡에서 흐려져서 나눠요 */
-    const n=Math.ceil(cv.height/(1500*scale)),part=Math.ceil(cv.height/n),parts=[];for(let y=0;y<cv.height;y+=part){const c=document.createElement('canvas');c.width=cv.width;c.height=Math.min(part,cv.height-y);
-      const x=c.getContext('2d');x.fillStyle=bg;x.fillRect(0,0,c.width,c.height);x.drawImage(cv,0,y,cv.width,c.height,0,0,cv.width,c.height);parts.push(c)}
+    const bg=getComputedStyle(document.body).backgroundColor||'#FFF8EE',ink=getComputedStyle(document.body).color||'#3D2E28';
+    const W=Math.max(320,el.scrollWidth),H0=el.scrollHeight;
+    /* 카톡에서 폰 화면을 꽉 채우게 한 장을 1080×1920(9:16)으로 만들어요 */
+    const OW=1080,OH=1920,PAD=40,FOOT=90,k=OW/W,pageCss=(OH-PAD-FOOT)/k;
+    /* 아이폰 캔버스 한도(약 1,600만 화소) 안에서 최대한 크게 그려요 */
+    const s=Math.max(1,Math.min(k,Math.sqrt(15e6/(W*H0))));
+    const hide=n=>n.classList&&(n.classList.contains('noshot')||n.classList.contains('icon-btn')||n.hasAttribute('data-retry')||n.hasAttribute('data-prac')||n.classList.contains('pcrow')||n.classList.contains('toast'));
+    let cuts=[],Hc=H0;
+    const cv=await h(el,{scale:s,backgroundColor:bg,useCORS:true,logging:false,windowWidth:W,
+      onclone:d=>{const st=d.createElement('style');st.textContent='*,*::before,*::after{animation:none!important;transition:none!important}';d.head.appendChild(st);
+        const sc=d.querySelector('.screen');if(!sc)return;[...sc.querySelectorAll('*')].filter(hide).forEach(n=>n.remove());
+        /* 자를 자리: 가로로 넓은 덩어리(카드, 줄)의 아래쪽. 글줄 한가운데를 자르지 않게 */
+        const top=sc.getBoundingClientRect().top;Hc=sc.scrollHeight;
+        cuts=[...sc.querySelectorAll('*')].map(n=>{const r=n.getBoundingClientRect();const head=/^H\d$/.test(n.tagName)||(n.parentElement&&n.parentElement.firstElementChild===n&&n.nextElementSibling);return r.width>=W*.6&&r.height>0&&!head?Math.round(r.bottom-top)+3:-1}).filter(y=>y>0&&y<Hc).sort((x,y)=>x-y)}});
+    Hc=Math.min(Hc,cv.height/s);
+    const pages=[];let y0=0;
+    while(y0<Hc-2){let y1=y0+pageCss;if(y1>=Hc)y1=Hc;else{const c=cuts.filter(c=>c>y0+pageCss*.55&&c<=y1);if(c.length)y1=c[c.length-1]}pages.push([y0,y1]);y0=y1}
+    const name0=(S.parent&&S.parent.name)||'';
+    const parts=pages.map(([y0,y1],i)=>{const c=document.createElement('canvas');c.width=OW;c.height=OH;const x=c.getContext('2d');x.fillStyle=bg;x.fillRect(0,0,OW,OH);
+      x.imageSmoothingQuality='high';x.drawImage(cv,0,Math.round(y0*s),cv.width,Math.round((y1-y0)*s),0,PAD,OW,Math.round((y1-y0)*k));
+      x.fillStyle=ink;x.globalAlpha=.45;x.font='34px Jua, "Gowun Dodum", sans-serif';x.textAlign='center';x.textBaseline='middle';
+      x.fillText(`🫘 콩콩마을 ${name0?name0+'의 ':''}리포트${pages.length>1?` · ${i+1}/${pages.length}`:''}`,OW/2,OH-FOOT/2);x.globalAlpha=1;return c});
     const name=(S.parent&&S.parent.name)||'';const day=new Date().toISOString().slice(0,10);
     const files=await Promise.all(parts.map((c,i)=>new Promise(r=>c.toBlob(bl=>r(new File([bl],`콩콩마을리포트_${name}${day}${parts.length>1?'_'+(i+1):''}.png`,{type:'image/png'})),'image/png'))));
     K.lastShot=files;
