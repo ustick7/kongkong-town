@@ -149,6 +149,11 @@ K.ocrSample=t=>{const n=[...t].length,c=document.createElement('canvas');c.width
   x.strokeStyle='#ddd';x.lineWidth=2;for(let i=1;i<n;i++){x.beginPath();x.moveTo(200*i,0);x.lineTo(200*i,260);x.stroke()}
   x.fillStyle='#3D2E28';x.font='bold 150px "Gaegu","Jua",sans-serif';x.textAlign='center';x.textBaseline='middle';[...t].forEach((ch,i)=>x.fillText(ch,200*i+100,135));
   return c.toDataURL('image/jpeg',.8)};
+/* 설정에 보여 줄 오늘 사용량: 이 폰에서 센 값이에요 (구글 쪽 정확한 잔량은 AI Studio에서) */
+K.ocrUsage=()=>{if(!S.ocrKey)return '';const d=new Date().toISOString().slice(0,10);const n=S.ocrN&&S.ocrN.d===d?S.ocrN.n:0;const now=Date.now();
+  const sk=Object.entries(S.ocrSkip||{}).filter(([m,t])=>t>now).map(([m,t])=>`${m.replace('gemini-','')} (${Math.ceil((t-now)/6e4)}분 뒤 다시)`);
+  const g=Object.entries(S.ocrGood||{}).sort((a,b)=>b[1]-a[1])[0];
+  return `오늘 이 폰에서 AI에 물어본 횟수: <b>${n}번</b> (채점 한 번에 2번, 하루 최대 ${DAY_MAX}번)`+(g?`<br>최근에 잘 된 모델: ${g[0].replace('gemini-','')}`:'')+(sk.length?`<br>잠시 쉬는 모델: ${sk.join(', ')}`:'')};
 /* 왜 못 읽었는지 부모님께 보여 줄 말 */
 K.ocrWhy=l=>{if(!l)return '';const W={cap:'오늘 사용량을 다 썼어요',net:'구글에 연결하지 못했어요'+(l.err?' ('+l.err+')':''),read:'두 번 중 한 번만 읽혔어요'+(l.err?' ('+l.err+')':''),empty:'빈 칸으로 읽었어요',
   len:`글자 수가 다르게 읽혔어요 (${l.text||''})`,unclear:`알아보기 어려운 글자가 있어요 (${l.text||''} / ${l.alt||''})`,differ:`두 번 읽은 게 달라요 (${l.text||''} / ${l.alt||''})`,unsure:`두 번 다 자신 없다고 했어요 (${l.text||''})`};
