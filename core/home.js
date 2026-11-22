@@ -126,6 +126,8 @@ K.views.settings=a=>{const P=S.parent;
   <div class="set-row"><textarea id="lyr" rows="5" style="width:100%;font:inherit;font-size:16px;border-radius:14px;border:2px solid var(--line);padding:10px;background:var(--paper);color:var(--ink)" placeholder="가사를 한 줄씩 붙여 넣어요">${(S.lyrics||'').replace(/</g,'&lt;')}</textarea></div><p class="muted" id="lyc"></p>
   <h2 style="margin-top:12px">✍️ 손글씨 자동 채점</h2><p>구글 <b>Gemini 키</b>(AQ. 또는 AIza로 시작)를 붙여 넣고 <b>연결 확인</b>을 누르면 끝이에요. 콩이가 받아쓰기 글씨를 직접 읽고 글자마다 채점해요. 키는 이 폰에만 저장되고 기록 내보내기에도 들어가지 않아요. 비워 두면 아이가 정답과 스스로 비교해요. 키 받는 법은 <a href="https://github.com/ustick7/kongkong-town/blob/main/worker/README.md" target="_blank" rel="noopener">안내서</a>에 있어요.</p>
   <div class="set-row"><input type="text" autocapitalize="off" autocomplete="off" spellcheck="false" id="ocr" placeholder="AQ.… 또는 AIza… 키를 붙여 넣어요" value="${(S.ocrKey||S.ocrUrl||'').replace(/"/g,'&quot;')}" style="flex:1;min-width:0;-webkit-text-security:${S.ocrKey?'disc':'none'}"><button class="btn ghost" id="ocrt">연결 확인</button></div><p class="muted" id="ocrm"></p>
+  <h2 style="margin-top:12px">🗣️ 콩이 목소리</h2><p>콩이 목소리는 이 폰에 들어 있는 한국어 음성을 써요. 여러 개 있으면 골라서 들어 보세요.</p>
+  <div class="set-row" id="vc"></div><div class="set-row"><button class="btn ghost" id="vt">🔊 들어 보기</button></div><p class="muted" style="font-size:13px">목소리가 하나뿐이면 폰 설정 › 일반(또는 접근성) › 텍스트 음성 변환(TTS) › 엔진 설정 › 음성 설치 › 한국어에서 다른 목소리를 받을 수 있어요.</p>
   <h2 style="margin-top:12px">🌙 밤 화면 (눈 보호)</h2><p>밤 화면은 어두운 색이라 저녁에 눈이 덜 부셔요. 자동이면 폰이 다크 모드이거나 정한 시각부터 아침 7시까지 밤 화면이 돼요.</p>
   <div class="set-row" id="thm"></div><div class="set-row" id="nf"></div>
   <h2 style="margin-top:12px">🔒 비밀번호</h2><div class="set-row"><button class="btn ghost" id="pc">비밀번호 바꾸기</button></div>
@@ -141,8 +143,12 @@ K.views.settings=a=>{const P=S.parent;
     $('#gate').className='chip '+(gate?'on':'');$('#gate').textContent=gate?'켜짐: 미션 확인 후 시작':'꺼짐: 바로 시작';
     $('#thm').innerHTML=[['auto','자동'],['light','항상 밝게'],['dark','항상 밤 화면']].map(([k,n])=>`<button class="chip ${th===k?'on':''}" data-th="${k}">${n}</button>`).join('');
     $('#nf').innerHTML=th==='auto'?[18,19,20,21,0].map(h=>`<button class="chip ${nf===h?'on':''}" data-nf="${h}">${h?'저녁 '+(h-12)+'시부터':'시간 말고 폰 설정만'}</button>`).join(''):'';
-    $('#used').textContent=`오늘 논 시간: ${Math.floor(S.play.used/60)}분`};draw();
+    $('#used').textContent=`오늘 논 시간: ${Math.floor(S.play.used/60)}분`;
+    const vs=K.koVoices?K.koVoices():[],cur=K.voiceName?K.voiceName():'';$('#vc').innerHTML=vs.length?vs.map((v,i)=>`<button class="chip ${v.name===cur?'on':''}" data-vc="${i}">${v.name.replace(/^(Google|Microsoft|Samsung)\s*/i,'').slice(0,24)||'목소리 '+(i+1)}</button>`).join(''):'<span class="muted">이 폰에서 한국어 목소리를 찾지 못했어요</span>'};draw();
+  if(window.speechSynthesis)speechSynthesis.addEventListener('voiceschanged',()=>{if($('#vc'))draw()});
   a.addEventListener('click',e=>{const t=e.target.closest('button');if(!t)return;
+    if(t.dataset.vc!=null){const v=K.koVoices()[+t.dataset.vc];if(v){K.setVoice(v.name);draw();K.sampleVoice()}return}
+    if(t.id==='vt'){K.sampleVoice();return}
     if(t.dataset.th){th=t.dataset.th;S.theme=th;K.save();K.applyTheme();draw();return}
     if(t.dataset.nf!=null){nf=+t.dataset.nf;S.nightFrom=nf;K.save();K.applyTheme();draw();return}
     if(t.dataset.x!=null){ms.splice(+t.dataset.x,1);draw()}else if(t.dataset.m){ms.push(t.dataset.m);draw()}else if(t.dataset.l!=null){lim=+t.dataset.l;draw()}

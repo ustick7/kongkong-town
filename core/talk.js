@@ -60,7 +60,13 @@ K.hello=()=>{const h=new Date().getHours();const nm=(S.parent&&S.parent.name)||'
 let voice=null;
 const pickVoice=()=>{const vs=(window.speechSynthesis&&speechSynthesis.getVoices()||[]).filter(v=>/^ko/i.test(v.lang));if(!vs.length)return null;
   const score=v=>(/neural|natural|online|premium|enhanced|wavenet/i.test(v.name)?40:0)+(/google/i.test(v.name)?20:0)+(/samsung|yuna|sunhi|heami|injoon/i.test(v.name)?15:0)+(v.localService?0:5)+(v.default?2:0);
+  const mine=S.voiceName&&vs.find(v=>v.name===S.voiceName);if(mine)return mine;
   return vs.sort((a,b)=>score(b)-score(a))[0]};
+/* 설정: 이 폰에 있는 한국어 목소리 목록, 고르기, 들어 보기 */
+K.koVoices=()=>(window.speechSynthesis&&speechSynthesis.getVoices()||[]).filter(v=>/^ko/i.test(v.lang));
+K.setVoice=name=>{S.voiceName=name||'';K.save();voice=pickVoice()};
+K.voiceName=()=>voice?voice.name:'';
+K.sampleVoice=()=>{const on=S.voice;S.voice=true;K.speak('안녕! 나는 콩이야. 오늘도 같이 재밌게 공부하자! 이 목소리 어때?');S.voice=on};
 if('speechSynthesis' in window){voice=pickVoice();speechSynthesis.onvoiceschanged=()=>{voice=pickVoice()}}
 /* 이모지·기호는 읽지 않고, 말하기 좋게 다듬어요 */
 const clean=t=>String(t||'').replace(/<[^>]+>/g,'').replace(/[\u{1F000}-\u{1FAFF}\u{2600}-\u{27BF}\u{FE0F}\u{200D}\u{2B50}\u{2B55}\u{274C}]/gu,'').replace(/[~]+/g,'').replace(/…+/g,', ').replace(/[▶◀→←]/g,' ').replace(/\s+/g,' ').trim();
