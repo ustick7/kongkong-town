@@ -115,7 +115,7 @@ function write(p,G){
    <div class="pad-wrap" id="pw"><canvas id="cv"></canvas><div class="pad-guide" id="pg"></div></div>
    <div class="pad-tools"><button class="btn ghost" id="undo">↩ 한 획 지우기</button><button class="btn ghost" id="clr">🧽 모두 지우기</button></div>
    <div id="cmp"></div>`);
-  G.hideTray();bindListen({text:p.say||p.word,lang:'ko-KR',rate:.8});
+  G.hideTray();const EN=p.lang==='en';bindListen({text:p.say||p.word,lang:EN?'en-US':'ko-KR',rate:.8});
   const cv=$('#cv'),pw=$('#pw'),ctx=cv.getContext('2d');let strokes=[],cur=null;
   let cols=cells,rows=1;
   const size=()=>{const w=pw.clientWidth;const maxC=Math.max(3,Math.floor(w/64));rows=Math.ceil(cells/maxC);cols=Math.ceil(cells/rows);
@@ -139,13 +139,13 @@ function write(p,G){
   /* 다 쓰면: 채점 주소가 있으면 콩이(AI)가 먼저 읽어 보고, 못 읽으면 아이가 스스로 비교해요 */
   const sy=[...p.word.replace(/\s/g,'')];
   function grade(){if(stage!=='write')return;G.P.img=snap();stage='busy';
-    if(!K.ocrOn()||!navigator.onLine){stage='self';showCompare();return}
+    if(!(EN?K.hearOn():K.ocrOn())||!navigator.onLine){stage='self';showCompare();return}
     K.$('#acts').innerHTML='<div class="muted" style="text-align:center;padding:10px">🔎 콩이가 글씨를 읽고 있어요…</div>';pw.style.pointerEvents='none';
-    K.ocrRead(snap(640,.8),sy.length).then(j=>{if(!pw.isConnected)return;stage='self';
+    K.ocrRead(snap(640,.8),sy.length,{lang:EN?'en':'ko',cs:!!p.cs}).then(j=>{if(!pw.isConnected)return;stage='self';
         const t=j&&typeof j.text==='string'?[...j.text.replace(/\s/g,'')]:null;
         if(t&&j.sure&&t.length===sy.length){G.P.ocr=t.join('');showAuto(t)}else{G.P.ocr0=t?t.join(''):'';showCompare('콩이가 글씨를 잘 못 읽었어. ')}})}
   function showAuto(t){K.$('#acts').innerHTML='';$('#undo').disabled=true;$('#clr').disabled=true;
-    const mk=sy.map((c,i)=>t[i]===c?'o':'x');const bad=sy.filter((c,i)=>mk[i]==='x');G.P.marks=mk.map((m,i)=>(m==='o'?'⭕':'❌')+sy[i]).join(' ');G.P.self='ai';
+    const same=(x,y)=>EN&&!p.cs?String(x).toLowerCase()===String(y).toLowerCase():x===y;const mk=sy.map((c,i)=>same(t[i],c)?'o':'x');const bad=sy.filter((c,i)=>mk[i]==='x');G.P.marks=mk.map((m,i)=>(m==='o'?'⭕':'❌')+sy[i]).join(' ');G.P.self='ai';
     $('#cmp').innerHTML=`<div class="compare"><div class="muted" style="font-size:15px">정답</div><div class="answord">${p.word}</div>
       <div class="sylchk">${sy.map((c,i)=>`<div class="syl ${mk[i]}"><b>${c}</b><i>${mk[i]==='o'?'⭕':'❌'}</i><small>${mk[i]==='o'?'':'쓴 글자: '+t[i]}</small></div>`).join('')}</div>
       ${bad.length?`<div style="font-size:16px"><b>${bad.join(', ')}</b>${K.josa(bad[bad.length-1],'이')} 달라. 정답을 잘 보고 다시 써 볼까?</div>
@@ -190,16 +190,53 @@ const words=s=>String(s||'').toLowerCase().split(/\s+/).map(norm).filter(Boolean
 /* 문장은 낱말의 3/4 이상이 들리면 통과 (아이 발음과 인식 오차를 감안) */
 const heardOk=(alts,target)=>{const t=norm(target),tw=words(target);return alts.some(a=>{const x=norm(a);if(x===t||x.includes(t)||(t.length>=4&&lev(x,t)<=1)||(t.length>=6&&lev(x,t)<=2))return true;
   if(tw.length>=3){const aw=words(a);const hit=tw.filter(w=>aw.some(v=>v===w||(w.length>=4&&lev(v,w)<=1))).length;return hit>=Math.ceil(tw.length*.75)}return false})};
+/* 콩이(AI)용: 낱말이 정확히 다 들려야 통과. 긴 문장(3낱말 이상)은 3/4 이상 정확히 */
+const heardAi=(a,target)=>{const tw=words(target),aw=words(a);if(!tw.length||!aw.length)return false;const hit=tw.filter(w=>aw.includes(w)).length;return tw.length>=3?hit>=Math.ceil(tw.length*.75):hit===tw.length&&aw.length<=tw.length+2};
+/* 녹음: 16kHz 모노 WAV (base64). 최대 ms 지나면 저절로 멈춰요 */
+K.recWav=async(maxMs,onLevel)=>{const st=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true}});
+  const AC=window.AudioContext||window.webkitAudioContext;const ac=new AC();const src=ac.createMediaStreamSource(st);const pr=ac.createScriptProcessor(4096,1,1);const bufs=[];let peak=0,stopped=false,res;
+  pr.onaudioprocess=e=>{if(stopped)return;const d=e.inputBuffer.getChannelData(0);let m=0;for(let i=0;i<d.length;i+=8){const v=Math.abs(d[i]);if(v>m)m=v}peak=Math.max(peak,m);onLevel&&onLevel(m);bufs.push(new Float32Array(d))};
+  src.connect(pr);pr.connect(ac.destination);
+  const done=new Promise(r=>res=r);
+  const stop=()=>{if(stopped)return;stopped=true;try{src.disconnect();pr.disconnect()}catch(e){}st.getTracks().forEach(t=>t.stop());const rate=ac.sampleRate;if(ac.close)ac.close();
+    const len=bufs.reduce((a,b)=>a+b.length,0),all=new Float32Array(len);let o=0;bufs.forEach(b=>{all.set(b,o);o+=b.length});
+    const R=16000,n=Math.floor(len*R/rate),pcm=new Int16Array(n);for(let i=0;i<n;i++){const v=all[Math.min(len-1,Math.floor(i*rate/R))];pcm[i]=Math.max(-1,Math.min(1,v))*32767}
+    const buf=new ArrayBuffer(44+pcm.length*2),dv=new DataView(buf);const ws=(o,t)=>{for(let i=0;i<t.length;i++)dv.setUint8(o+i,t.charCodeAt(i))};
+    ws(0,'RIFF');dv.setUint32(4,36+pcm.length*2,true);ws(8,'WAVE');ws(12,'fmt ');dv.setUint32(16,16,true);dv.setUint16(20,1,true);dv.setUint16(22,1,true);dv.setUint32(24,R,true);dv.setUint32(28,R*2,true);dv.setUint16(32,2,true);dv.setUint16(34,16,true);ws(36,'data');dv.setUint32(40,pcm.length*2,true);
+    new Int16Array(buf,44).set(pcm);let bin='';const u8=new Uint8Array(buf);for(let i=0;i<u8.length;i+=8192)bin+=String.fromCharCode.apply(null,u8.subarray(i,i+8192));
+    res({b64:btoa(bin),ms:Math.round(len/rate*1000),peak})};
+  setTimeout(stop,maxMs);return {stop,done}};
+/* 콩이(AI)가 녹음을 듣고 확인해요. 정답은 보내지 않고, 두 번 받아 적은 게 같고 확실할 때만 판단해요 */
+function aiHear(sp,lang,finish,play){let tries=0,busy=false,ctl=null;const $$=K.$;
+  const m0=$$('#mic'),mb='<button class="mic" id="mic" aria-label="말하기">🎤</button>';if(m0)m0.outerHTML=mb;else $$('#sl').insertAdjacentHTML('afterend',mb);$$('#sr2').innerHTML='';
+  $$('#hd').textContent='🎤를 누르고 크게 말한 다음, ⏹를 눌러요';K.say(sp.noAuto?'이건 영어로 뭘까? 🎤를 누르고 말해 봐!':K.talk('sayask'));
+  const giveUp=()=>{$$('#sr2').innerHTML='<button class="btn green" id="pok">👪 부모님: 잘 말했어요</button><button class="btn ghost" id="psk">다음에 할게요</button>';
+    $$('#pok').onclick=()=>K.parentCheck(()=>finish('parent'));$$('#psk').onclick=()=>finish('skip')};
+  const again=msg=>{tries++;K.sfx.soft();$$('#hd').innerHTML=msg;if(tries>=2)giveUp()};
+  $$('#mic').onclick=async()=>{const mic=$$('#mic');if(busy==='rec'){if(ctl)ctl.stop();return}if(busy)return;busy='rec';
+    try{ctl=await K.recWav(String(sp.text).split(' ').length>2?7000:4500,m=>{const b=$$('#mic');if(b)b.style.boxShadow=`0 0 0 ${Math.round(Math.min(1,m*3)*16)}px rgba(242,102,94,.35)`})}
+    catch(e){busy=false;$$('#hd').textContent='마이크를 쓸 수 없어요. 크게 말하고 아래를 눌러요';giveUp();return}
+    mic.classList.add('on');mic.textContent='⏹';$$('#hd').textContent='듣고 있어요… 다 말하면 ⏹를 눌러요';
+    const r=await ctl.done;busy='think';if(!mic.isConnected)return;mic.classList.remove('on');mic.textContent='🎤';mic.style.boxShadow='';
+    if(r.peak<.03||r.ms<400){busy=false;again('소리가 너무 작았어. 🎤를 누르고 더 크게 말해 봐!');return}
+    $$('#hd').textContent='🔎 콩이가 듣고 있어요…';
+    const h=await K.hearRead(r.b64,lang.slice(0,2));busy=false;if(!$$('#hd'))return;
+    if(!h){again('콩이가 지금 잘 못 들었어. 한 번 더 말해 볼래?');return}
+    sp.heard=h.text;const ok=heardAi(h.text,sp.text)&&heardAi(h.alt,sp.text);
+    if(h.sure&&ok){K.sfx.good();$$('#hd').innerHTML=`<b style="color:var(--green-d)">${h.clarity>=3?'발음 최고! 또박또박 완벽해!':'잘 말했어! 콩이가 다 알아들었어.'}</b>`;K.say(K.talk('sayok'));K.later(()=>finish(tries?'ok2':'ok'),900);return}
+    if(h.sure&&!ok){again(`'<b>${h.text}</b>'(으)로 들렸어. 🔊 한 번 더 듣고 말해 봐!`);play();return}
+    again('콩이가 확실히 못 알아들었어. 조용한 곳에서 한 번 더 크게!')}}
 K.speakPanel=(sp,G,done)=>{const acts=K.$('#acts');if(!acts){done();return}const lang=sp.lang||'en-US';let tries=0,busy=false;
   const finish=res=>{if(sp.own){G.P.sp=res;done(res);return}K.logSpeak&&K.logSpeak(res);done(res)};
-  acts.innerHTML=`<div class="speak"><div style="font-size:16px">🗣️ 이제 <b>소리 내어</b> 따라 말해 봐!</div><div class="tw ${lang.startsWith('ko')?'ko':''}">${sp.show||sp.text}</div>
+  acts.innerHTML=`<div class="speak"><div style="font-size:16px">${sp.noAuto?'🗣️ 영어로 <b>소리 내어</b> 말해 봐! 모르면 🔊':'🗣️ 이제 <b>소리 내어</b> 따라 말해 봐!'}</div><div class="tw ${lang.startsWith('ko')?'ko':''}">${sp.hide||sp.show||sp.text}</div>
     <div class="row" style="align-items:center"><button class="listen" id="sl" style="width:64px;height:64px;font-size:28px" aria-label="듣기">🔊</button>${SR?'<button class="mic" id="mic" aria-label="말하기">🎤</button>':''}</div>
     <div class="heard" id="hd">${SR?'🎤를 누르고 크게 말해 봐':'잘 듣고 크게 따라 말해 봐'}</div><div class="row" id="sr2">${SR?'':'<button class="btn green" id="said" disabled>🗣️ 크게 따라 말했어요</button>'}</div></div>`;
-  const play=()=>K.speakLang(sp.text,lang,.8);K.$('#sl').onclick=play;K.later(play,300);
+  const play=()=>K.speakLang(sp.text,lang,.8);K.$('#sl').onclick=()=>{if(sp.noAuto&&G&&G.P&&!G.P.usedHint){G.P.usedHint=true;const tw=acts.querySelector('.tw');if(tw)tw.textContent=sp.text}play()};if(!sp.noAuto)K.later(play,300);
+  if(K.hearOn&&K.hearOn()&&navigator.mediaDevices&&navigator.mediaDevices.getUserMedia&&(window.AudioContext||window.webkitAudioContext)){aiHear(sp,lang,finish,play);return}
   if(!SR){K.later(()=>{const b=K.$('#said');if(b)b.disabled=false},2200);K.$('#said').onclick=()=>finish('self');K.say(K.talk('sayask'));return}
   K.say('잘 듣고 🎤를 누른 다음 크게 따라 말해 봐!');
-  const giveUp=()=>{K.$('#sr2').innerHTML='<button class="btn green" id="pok">👍 잘 말했어요 (부모님 확인)</button><button class="btn ghost" id="psk">다음에 할게요</button>';
-    K.$('#pok').onclick=()=>finish('parent');K.$('#psk').onclick=()=>finish('skip')};
+  const giveUp=()=>{K.$('#sr2').innerHTML='<button class="btn green" id="pok">👪 부모님: 잘 말했어요</button><button class="btn ghost" id="psk">다음에 할게요</button>';
+    K.$('#pok').onclick=()=>K.parentCheck(()=>finish('parent'));K.$('#psk').onclick=()=>finish('skip')};
   K.$('#mic').onclick=()=>{if(busy)return;busy=true;let r;try{r=new SR()}catch(e){giveUp();return}r.lang=lang;r.interimResults=false;r.maxAlternatives=5;
     const mic=K.$('#mic');mic.classList.add('on');K.$('#hd').textContent='듣고 있어요… 말해 봐!';let got=false;
     r.onresult=e=>{got=true;const alts=[...e.results[0]].map(x=>x.transcript);mic.classList.remove('on');busy=false;
@@ -212,7 +249,7 @@ K.speakPanel=(sp,G,done)=>{const acts=K.$('#acts');if(!acts){done();return}const
 };
 /* say: 그림을 보고 듣고, 따라 말하는 것 자체가 문제 */
 function say(p,G){G.html(`<div class="qline"><span class="tag q">문제</span>${p.prompt||'잘 듣고 따라 말해요'}</div>${p.show?`<div class="show">${p.show}</div>`:''}`);G.hideTray();
-  K.speakPanel(Object.assign({own:true},p.talk),G,res=>{if(res==='ok2'||res==='skip'){G.P.wrong++;G.P.picks.push(res==='skip'?'말하기를 건너뜀':'두 번째에 성공')}G.success(p.line||'잘 말했어!')});}
+  K.speakPanel(Object.assign({own:true},p.talk),G,res=>{if(res==='skip'||res==='self'){G.P.picks.push(res==='skip'?'말하기를 건너뜀':'스스로 말했다고 함');G.pending(res==='skip'?'괜찮아, 다음에 또 해 보자!':'좋아! 부모님이 나중에 확인해 줄 거야.');return}if(res==='ok2'){G.P.wrong++;G.P.picks.push('두 번째에 성공')}G.success(p.line||'잘 말했어!')});}
 K.TYPES.say=say;
 
 /* 한글 자모 도구 */

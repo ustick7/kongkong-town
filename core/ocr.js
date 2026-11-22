@@ -27,6 +27,27 @@ const P_JAMO=n=>`이 사진은 어린아이가 손으로 쓴 한글 받아쓰기
 JSON으로만 답해요: {"cells":[["초성","중성","종성"], ...],"sure":true 또는 false}
 sure는 모든 칸의 모든 자모를 확실히 읽었을 때만 true예요.`;
 
+/* 영어 쓰기: 글자 그대로 / 칸마다 한 글자씩 (대·소문자 구분) */
+const P_TEXT_EN=n=>`This photo shows English letters handwritten by a young child, in ${n} boxes.
+Copy exactly the letters the child actually wrote, box by box, keeping upper/lower case as written.
+- Never fix spelling. Do not guess a real word. If a letter is missing or wrong, keep it that way.
+- If a box is empty or a letter is unreadable or could be two different letters, write ? for it.
+Reply only JSON: {"text":"letters you read","sure":true or false}. sure is true only if you are certain of every letter.`;
+const P_LET_EN=n=>`This photo shows English letters handwritten by a young child, in ${n} boxes.
+Look at the strokes in each box separately, from left to right, and name the single letter in it.
+- Do not read it as a word. Judge each box only by its own strokes. Keep upper/lower case as written.
+- Empty or unreadable box: "?".
+Reply only JSON: {"cells":["a","B", ...],"sure":true or false}. sure is true only if you are certain of every box.`;
+/* 말하기: 녹음을 그대로 받아 적기 / 낱말마다 나눠 적기. 정답은 보내지 않아요 */
+const P_HEAR=lang=>`This is a short recording of a young child speaking ${lang==='ko'?'Korean':'English'}.
+Write down exactly what the child said, word for word, as it actually sounded. Do not fix grammar or pronunciation into the word you think they meant.
+If there is no speech, write "". If a word is unclear, write ? for it.
+Also rate how clearly the child pronounced it: 1 (hard to understand), 2 (understandable), 3 (very clear).
+Reply only JSON: {"text":"what was said","clarity":1-3,"sure":true or false}. sure is true only if you are certain of every word.`;
+const P_HEAR2=lang=>`Listen to this short recording of a young child speaking ${lang==='ko'?'Korean':'English'}.
+List every word you hear, one by one, in order, exactly as pronounced. Do not guess intended words. Unclear word: "?".
+Reply only JSON: {"words":["word1","word2", ...],"sure":true or false}. sure is true only if you are certain of every word.`;
+
 /* 자모 → 글자 */
 const CHO='ㄱㄲㄴㄷㄸㄹㅁㅂㅃㅅㅆㅇㅈㅉㅊㅋㅌㅍㅎ',JUNG='ㅏㅐㅑㅒㅓㅔㅕㅖㅗㅘㅙㅚㅛㅜㅝㅞㅟㅠㅡㅢㅣ',JONG=['','ㄱ','ㄲ','ㄳ','ㄴ','ㄵ','ㄶ','ㄷ','ㄹ','ㄺ','ㄻ','ㄼ','ㄽ','ㄾ','ㄿ','ㅀ','ㅁ','ㅂ','ㅄ','ㅅ','ㅆ','ㅇ','ㅈ','ㅊ','ㅋ','ㅌ','ㅍ','ㅎ'];
 const compose=c=>{if(!Array.isArray(c))return '?';const [a,b,z]=c.map(x=>String(x==null?'':x).trim());const i=CHO.indexOf(a),j=JUNG.indexOf(b),k=JONG.indexOf(z||'');
@@ -38,6 +59,10 @@ const parse=raw=>{const s=String(raw||'').replace(/```(?:json)?/gi,'').trim();tr
   const m=/\{[\s\S]*\}/.exec(s);if(m){try{return JSON.parse(m[0])}catch(e){}}return null};
 const clean=t=>String(t||'').replace(/\s/g,'').slice(0,40);
 /* 두 번 읽은 결과로 확실한지 정해요 */
+K.ocrDecideEn=(a,b,n,cs)=>{const ta=a?clean(a.text):'';const tb=b&&Array.isArray(b.cells)?b.cells.map(x=>String(x||'?').trim().slice(0,1)||'?').join(''):'';
+  const eq=(x,y)=>cs?x===y:x.toLowerCase()===y.toLowerCase();
+  const why=!a||!b?'read':!ta?'empty':ta.length!==n?'len':/\?/.test(ta+tb)||/[^A-Za-z]/.test(ta)?'unclear':!eq(ta,tb)?'differ':!(a.sure===true&&b.sure===true)?'unsure':'';
+  return {text:ta,alt:tb,sure:!why,why}};
 K.ocrDecide=(a,b,n)=>{const ta=a?clean(a.text):'';const tb=b&&Array.isArray(b.cells)?b.cells.map(compose).join(''):'';
   const why=!a||!b?'read':!ta?'empty':[...ta].length!==n?'len':/\?/.test(ta+tb)?'unclear':ta!==tb?'differ':!(a.sure===true&&b.sure===true)?'unsure':'';
   return {text:ta,alt:tb,sure:!why,why}};
@@ -68,17 +93,28 @@ async function gemini(key,prompt,mime,data,signal){let last=0;
   throw new Error('gemini '+last)}
 
 /* 읽기: {text, sure, why} 또는 null(연결 안 됨) */
-K.ocrRead=async(img,n)=>{const ac=new AbortController();const to=timeout(25000,ac);
+K.ocrRead=async(img,n,o={})=>{const en=o.lang==='en';const ac=new AbortController();const to=timeout(25000,ac);
   try{
     if(S.ocrKey){const c=count();if(c.n+2>DAY_MAX)return null;c.n+=2;K.save();
       const m=/^data:(image\/(?:jpeg|png));base64,(.+)$/.exec(img||'');if(!m)return null;
-      const [a,b]=await Promise.all([gemini(S.ocrKey,P_TEXT(n),m[1],m[2],ac.signal).catch(()=>null),gemini(S.ocrKey,P_JAMO(n),m[1],m[2],ac.signal).catch(()=>null)]);
-      if(!a&&!b)return null;return K.ocrDecide(a,b,n)}
-    if(S.ocrUrl){const r=await fetch(S.ocrUrl,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({image:img,cells:n}),signal:ac.signal});
+      const [a,b]=await Promise.all([gemini(S.ocrKey,(en?P_TEXT_EN:P_TEXT)(n),m[1],m[2],ac.signal).catch(()=>null),gemini(S.ocrKey,(en?P_LET_EN:P_JAMO)(n),m[1],m[2],ac.signal).catch(()=>null)]);
+      if(!a&&!b)return null;return en?K.ocrDecideEn(a,b,n,!!o.cs):K.ocrDecide(a,b,n)}
+    if(S.ocrUrl&&!en){const r=await fetch(S.ocrUrl,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({image:img,cells:n}),signal:ac.signal});
       if(!r.ok)return null;const j=await r.json();if(!j||typeof j.text!=='string')return null;
       const t=clean(j.text);return {text:t,sure:!!j.sure&&[...t].length===n&&!/\?/.test(t),why:j.why||''}}
     return null}
   catch(e){return null}finally{clearTimeout(to)}};
+
+/* 말 듣기: {text, alt, sure, clarity, why} 또는 null. 키가 있을 때만 */
+K.hearOn=()=>!!S.ocrKey;
+K.hearRead=async(b64,lang)=>{if(!S.ocrKey)return null;const c=count();if(c.n+2>DAY_MAX)return null;c.n+=2;K.save();
+  const ac=new AbortController();const to=timeout(25000,ac);
+  try{const [a,b]=await Promise.all([gemini(S.ocrKey,P_HEAR(lang),'audio/wav',b64,ac.signal).catch(()=>null),gemini(S.ocrKey,P_HEAR2(lang),'audio/wav',b64,ac.signal).catch(()=>null)]);
+    if(!a&&!b)return null;return K.hearDecide(a,b)}catch(e){return null}finally{clearTimeout(to)}};
+const nw=t=>String(t||'').toLowerCase().replace(/[^a-z0-9가-힣?\s']/g,' ').replace(/\s+/g,' ').trim();
+K.hearDecide=(a,b)=>{const ta=a?nw(a.text):'';const tb=b&&Array.isArray(b.words)?nw(b.words.join(' ')):'';
+  const why=!a||!b?'read':!ta?'empty':/\?/.test(ta+' '+tb)?'unclear':ta.replace(/[\s']/g,'')!==tb.replace(/[\s']/g,'')?'differ':!(a.sure===true&&b.sure===true)?'unsure':'';
+  return {text:ta,alt:tb,sure:!why,why,clarity:a&&+a.clarity||0}};
 
 /* 설정의 '연결 확인': true 또는 안내 문장 */
 K.ocrCheck=async u=>{
