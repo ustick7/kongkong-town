@@ -57,3 +57,6 @@ core/ages.js            단계별 나이 표시 (단계에 age가 없을 때)
 ```
 - 새 놀이: `K.area('<과목id>', {skills, levels, types, tip})`로 등록하고 `index.html`에 스크립트 한 줄을 추가해요.
 - 문제마다 `skill`을 붙이면 리포트에서 그 기술의 실력이 따로 계산돼요. 이름은 놀이의 `skills`에 적어요.
+
+## 고친 뒤 올리기
+`node tools/ver.js` 를 실행하고 올려요. version.json의 버전이 바뀌어서, 폰에 예전 파일이 캐시돼 있어도 다음에 열 때 새 파일을 받아요. 새 파일을 추가했으면 version.json의 files 목록에도 넣어요. 지금 버전은 ⚙️ 부모님 설정 맨 위에서 볼 수 있어요.

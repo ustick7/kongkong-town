@@ -115,7 +115,7 @@ function importData(f){const rd=new FileReader();rd.onload=()=>{let o;try{o=JSON
     <div class="set-row"><button class="btn green" id="imok">불러올게요</button><button class="btn ghost" data-a="close">취소</button></div></div>`;document.body.appendChild(m);
   m.querySelector('#imok').onclick=()=>{try{localStorage.setItem('kongkong-v1',JSON.stringify(Object.assign({},o.data,S.ocrKey&&!o.data.ocrKey?{ocrKey:S.ocrKey}:{})))}catch(e){K.toast('저장 공간이 부족해요');return}location.reload()}};rd.readAsText(f)}
 K.views.settings=a=>{const P=S.parent;
-  a.innerHTML=`<div class="screen">${K.topbar('부모님 설정')}
+  a.innerHTML=`<div class="screen">${K.topbar('부모님 설정')}<p class="muted" style="text-align:center;font-size:13px;margin:0">콩콩마을 버전 ${window.KK_VER||'-'}</p>
   <div class="sheet"><h2>👋 아이 이름</h2><div class="set-row"><input type="text" id="nm" maxlength="8" value="${P.name||''}" placeholder="예: 서윤"></div>
   <h2 style="margin-top:12px">✅ 시작 미션</h2>
   <div class="set-row"><button class="chip ${P.gate?'on':''}" id="gate">${P.gate?'켜짐: 미션 확인 후 시작':'꺼짐: 바로 시작'}</button></div>
