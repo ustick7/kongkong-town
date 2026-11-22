@@ -11,7 +11,7 @@ const today=()=>{const d=new Date();return d.getFullYear()+'-'+(d.getMonth()+1)+
 K.css(`
 .gdot{position:absolute;top:2px;right:2px;width:12px;height:12px;border-radius:50%;background:var(--red);box-shadow:0 0 0 2px var(--paper);animation:gpulse 1.2s infinite}@keyframes gpulse{50%{transform:scale(1.3)}}
 .gtabs{display:flex;gap:6px;justify-content:center}
-.gtabs button{appearance:none;border:0;font-family:var(--f-disp);font-size:17px;padding:8px 14px;border-radius:999px;background:var(--s-white);color:var(--ink);box-shadow:inset 0 0 0 2px var(--line);cursor:pointer}
+.gtabs button{appearance:none;border:0;font-family:var(--f-disp);font-size:16px;padding:8px 11px;border-radius:999px;background:var(--s-white);color:var(--ink);box-shadow:inset 0 0 0 2px var(--line);cursor:pointer}
 .gtabs button.on{background:var(--green);color:#fff;box-shadow:none}
 .goal{display:flex;flex-direction:column;gap:6px;padding:12px 14px;border-radius:18px;background:var(--s-yellow);font-size:15px}
 .goal .bar{height:14px;border-radius:999px;background:var(--s-track);overflow:hidden}.goal .bar i{display:block;height:100%;background:linear-gradient(90deg,#FFC845,#FF8A3D);border-radius:999px;transition:width .6s}
@@ -175,16 +175,18 @@ function plantSvg(st,k){const kd=KINDS[k];const stem=[0,30,55,85,110,120,125][st
   if(st>=6)h+=`<path d="M150 ${top+60} q24 6 30 34 q-20 -4 -30 -34Z" fill="${kd.pod}"/><circle cx="160" cy="${top+72}" r="4" fill="#fff" opacity=".6"/><circle cx="167" cy="${top+82}" r="4" fill="#fff" opacity=".6"/><circle cx="173" cy="${top+91}" r="3.5" fill="#fff" opacity=".6"/>
     <path d="M110 ${top+70} q-24 6 -30 34 q20 -4 30 -34Z" fill="${kd.pod}"/><circle cx="100" cy="${top+82}" r="4" fill="#fff" opacity=".6"/><circle cx="93" cy="${top+92}" r="3.5" fill="#fff" opacity=".6"/>`;
   return h}
-function potSvg(st,k,pot){const [a,b]=POTS[pot]||POTS[''];const pat=pot==='dot'?[[92,262],[120,282],[150,262],[165,290],[105,298]].map(([x,y])=>`<circle cx="${x}" cy="${y}" r="5" fill="#fff" opacity=".5"/>`).join(''):pot==='rainbow'?['#FF6B6B','#FFB347','#FFE066','#6CD47A','#6AB7FF'].map((c,i)=>`<rect x="${74+i*0}" y="${246+i*12}" width="112" height="6" fill="${c}" opacity=".85"/>`).join(''):'';
+function potSvg(st,k,pot,nk){const [a,b]=POTS[pot]||POTS[''];const pat=pot==='dot'?[[92,262],[120,282],[150,262],[165,290],[105,298]].map(([x,y])=>`<circle cx="${x}" cy="${y}" r="5" fill="#fff" opacity=".5"/>`).join(''):pot==='rainbow'?['#FF6B6B','#FFB347','#FFE066','#6CD47A','#6AB7FF'].map((c,i)=>`<rect x="${74+i*0}" y="${246+i*12}" width="112" height="6" fill="${c}" opacity=".85"/>`).join(''):'';
   return `<svg class="pot" viewBox="0 0 260 330" aria-label="콩이 화분: ${KINDS[k].n} ${STAGES[st][1]}"><defs><clipPath id="potc"><path d="M70 228 h120 l-14 88 h-92Z"/></clipPath></defs><g class="sway">${plantSvg(st,k)}</g>
    <path d="M70 228 h120 l-14 88 h-92Z" fill="${a}"/><g clip-path="url(#potc)">${pat}</g><rect x="62" y="218" width="136" height="22" rx="8" fill="${b}"/><ellipse cx="130" cy="229" rx="58" ry="6" fill="#7A5236"/>
-   <g class="kong" style="transform-origin:130px 300px;transform-box:view-box"><g transform="translate(96 252) scale(.55)">${K.buddySvg('sprout').replace(/<svg[^>]*>|<\/svg>/g,'')}</g></g></svg>`}
+   ${nk?'':`<g class="kong" style="transform-origin:130px 300px;transform-box:view-box"><g transform="translate(96 252) scale(.55)">${K.buddySvg('sprout').replace(/<svg[^>]*>|<\/svg>/g,'')}</g></g>`}</svg>`}
 
 /* 오늘 확인된 공부: 맞힌 문제만 (연습·확인 기다림 제외) */
 const todayCount=()=>{const d=new Date();d.setHours(0,0,0,0);const t0=d.getTime();return (S.log||[]).filter(r=>r.t>=t0&&r.ok&&r.res!=='pending'&&r.res!=='practice').length};
 K.gardenAlert=()=>{const g=S.garden;return (stageOf(S.plant.water)===6)||(g.goal.day!==today()&&todayCount()>=GOAL)||(g.goal.day===today()&&!g.goal.got&&todayCount()>=GOAL)};
 
-let tab='pot',slot='head',trial=null;
+let tab='park',slot='head',trial=null;
+K.gardenPot=()=>{const g=S.garden;return potSvg(stageOf(S.plant.water),g.kind%KINDS.length,g.pot,1).replace('class="pot"','class="pot" style="width:100%;height:100%"')};
+K.gardenFriend=id=>FRIENDS.find(x=>x.id===id);
 const TALK=['간지러워! 히히','같이 문제 풀자!','물 주면 쑥쑥 클 거야!','오늘도 고마워!','콩콩! 나 점프 잘하지?','네가 공부하면 나도 힘이 나!','오늘 옷 어때? 멋지지?'];
 const SPOT=[[3,74],[78,76],[14,58],[70,60],[2,40],[84,44],[24,82],[60,84]];
 const kongMini=w=>`<svg viewBox="-6 -20 132 142">${K.buddySvg('sprout',w).replace(/<svg[^>]*>|<\/svg>/g,'')}</svg>`;
@@ -199,7 +201,8 @@ K.views.garden=a=>{const g=S.garden;if(g.goal.day!==today())g.goal={day:today(),
   const goalHtml=`<div class="goal"><div>⭐ <b>오늘의 공부</b> 문제 ${GOAL}개 맞히기 · <b>${Math.min(n,GOAL)}/${GOAL}</b></div><div class="bar"><i style="width:${Math.min(100,n/GOAL*100)}%"></i></div>
     ${g.goal.got?'<div>✅ 오늘 보너스 받았어요! 내일 또 만나!</div>':n>=GOAL?`<button class="btn green pulse" id="bonus">🎁 보너스 콩알 ${BONUS}개 받기</button>`:`<div class="muted">${GOAL-n}개 더 맞히면 보너스 콩알 ${BONUS}개!</div>`}</div>`;
   let body='';
-  if(tab==='pot')body=`${goalHtml}<div class="board" style="position:relative;padding:8px"><div class="muted" style="text-align:center;font-size:14px;margin-bottom:4px">${k+1}번째 콩 · <b>${kd.n}</b></div>
+  if(tab==='park')body=(K.gardenAlert()?`<button class="btn green pulse" id="gpot">🪴 화분에 할 일이 있어요!</button>`:'')+K.parkHtml();
+  else if(tab==='pot')body=`${goalHtml}<div class="board" style="position:relative;padding:8px"><div class="muted" style="text-align:center;font-size:14px;margin-bottom:4px">${k+1}번째 콩 · <b>${kd.n}</b></div>
      ${scene(st,k,g)}<div class="stage-bar" style="margin-top:8px">${STAGES.map((s,i)=>`<span class="${i<=st?'on':''}">${s[1]}</span>`).join('')}</div></div>
      ${st===6?`<button class="btn big green pulse" id="hv">🧺 콩 수확하기</button>`:`<button class="btn big blue" id="wt">💧 물 주기 (콩알 ${COST}개)</button>`}
      <div class="muted" style="text-align:center;font-size:14px">콩이랑 친구들을 콕 눌러 봐!</div>`;
@@ -221,9 +224,10 @@ K.views.garden=a=>{const g=S.garden;if(g.goal.day!==today())g.goal={day:today(),
      return `<div class="card ${got?'':'lock'} ${i===k&&!got?'cur':''}"><svg viewBox="60 30 140 140">${bloom(i,120)}</svg><div>${got?`<b>${x.n}</b>`:i===k?'키우는 중':'?'}</div></div>`}).join('')}</div>
      ${g.done.length?`<div class="board" style="font-size:15px">${g.done.map(i=>`<div>🌼 <b>${KINDS[i].n}</b> · ${KINDS[i].t}</div>`).join('')}</div>`:''}`;
   a.innerHTML=`<div class="screen">${K.topbar('콩이 정원')}<div class="hud" style="justify-content:center"><span class="beans">🫘 콩알 <b id="bn">${S.beans}</b>개</span><span class="beans">🌼 수확 ${g.done.length}번</span></div>
-   ${tab==='shop'?'':K.buddyRow()}<div class="gtabs">${[['pot','🪴 정원'],['shop','👗 꾸미기'],['dex','📖 도감']].map(([t,l])=>`<button data-tab="${t}" class="${tab===t?'on':''}">${l}</button>`).join('')}</div>
+   ${tab==='shop'||tab==='park'?'':K.buddyRow()}<div class="gtabs">${[['park','🎠 놀이터'],['pot','🪴 화분'],['shop','👗 꾸미기'],['dex','📖 도감']].map(([t,l])=>`<button data-tab="${t}" class="${tab===t?'on':''}">${l}</button>`).join('')}</div>
    ${body}<button class="btn ghost" id="pl">공부하러 가기 ▶</button></div>`;
-  a.querySelectorAll('[data-tab]').forEach(b=>b.onclick=()=>{tab=b.dataset.tab;trial=null;K.sfx.pick();K.render()});
+  a.querySelectorAll('[data-tab]').forEach(b=>b.onclick=()=>{tab=b.dataset.tab;trial=null;K.parkReset&&K.parkReset();K.sfx.pick();K.render()});
+  if(tab==='park'){K.parkBind(a);const gp=$('#gpot');if(gp)gp.onclick=()=>{tab='pot';K.sfx.pick();K.render()}}
   $('#pl').onclick=()=>K.go('village');
   if(tab==='pot'){
     K.say(st===6?`우와! ${kd.n} 꼬투리가 열렸어! 수확해 보자!`:`지금은 <b>${STAGES[st][1]}</b>야. 물을 ${next[0]-S.plant.water}번 더 주면 <b>${next[1]}</b>${K.josa(next[1],'로')} 자라!${S.beans<COST?' 문제를 맞히면 콩알을 받아.':''}`);
