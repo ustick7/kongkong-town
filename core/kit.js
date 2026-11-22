@@ -139,12 +139,9 @@ function write(p,G){
   /* 다 쓰면: 채점 주소가 있으면 콩이(AI)가 먼저 읽어 보고, 못 읽으면 아이가 스스로 비교해요 */
   const sy=[...p.word.replace(/\s/g,'')];
   function grade(){if(stage!=='write')return;G.P.img=snap();stage='busy';
-    const url=K.S.ocrUrl;if(!url||!navigator.onLine){stage='self';showCompare();return}
+    if(!K.ocrOn()||!navigator.onLine){stage='self';showCompare();return}
     K.$('#acts').innerHTML='<div class="muted" style="text-align:center;padding:10px">🔎 콩이가 글씨를 읽고 있어요…</div>';pw.style.pointerEvents='none';
-    const ac=new AbortController();const to=setTimeout(()=>ac.abort(),12000);
-    const img=snap(640,.8);
-    fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({image:img,cells:sy.length}),signal:ac.signal})
-      .then(r=>r.ok?r.json():null).catch(()=>null).then(j=>{clearTimeout(to);if(!pw.isConnected)return;stage='self';
+    K.ocrRead(snap(640,.8),sy.length).then(j=>{if(!pw.isConnected)return;stage='self';
         const t=j&&typeof j.text==='string'?[...j.text.replace(/\s/g,'')]:null;
         if(t&&j.sure&&t.length===sy.length){G.P.ocr=t.join('');showAuto(t)}else{G.P.ocr0=t?t.join(''):'';showCompare('콩이가 글씨를 잘 못 읽었어. ')}})}
   function showAuto(t){K.$('#acts').innerHTML='';$('#undo').disabled=true;$('#clr').disabled=true;

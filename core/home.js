@@ -104,7 +104,7 @@ const RS0='<button class="btn ghost" id="r1">학습 기록만 지우기</button>
 const RSQ=(id,msg)=>`<p style="width:100%;margin:0"><b>${msg}</b></p><button class="btn" id="${id}" style="background:var(--red);box-shadow:0 6px 0 #C94A43">정말 지울게요</button><button class="btn ghost" id="r3">취소</button>`;
 /* 기록 옮기기: 이 기기의 모든 기록을 파일 하나로 */
 function exportData(){const d=new Date(),stamp=`${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}`;
-  const name=`kongkong-${(S.parent.name||'record')}-${stamp}.json`;const blob=new Blob([JSON.stringify({app:'kongkong',v:1,at:Date.now(),data:S})],{type:'application/json'});
+  const name=`kongkong-${(S.parent.name||'record')}-${stamp}.json`;const blob=new Blob([JSON.stringify({app:'kongkong',v:1,at:Date.now(),data:Object.assign({},S,{ocrKey:undefined})})],{type:'application/json'});
   const file=new File([blob],name,{type:'application/json'});
   if(navigator.canShare&&navigator.canShare({files:[file]}))navigator.share({files:[file],title:'콩콩마을 기록'}).catch(err=>{if(err&&err.name!=='AbortError')dl()});else dl();
   function dl(){const u=URL.createObjectURL(blob);const a=document.createElement('a');a.href=u;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),2000);K.toast('기록 파일을 저장했어요. 카톡으로 보내 주세요')}}
@@ -113,7 +113,7 @@ function importData(f){const rd=new FileReader();rd.onload=()=>{let o;try{o=JSON
   const n=(o.data.log||[]).length,nm=(o.data.parent&&o.data.parent.name)||'아이';
   const m=document.createElement('div');m.className='modal-bg';m.innerHTML=`<div class="sheet"><h2>📥 기록 불러오기</h2><p><b>${nm}</b>의 기록(문제 ${n}개, ${new Date(o.at).toLocaleDateString('ko-KR')} 저장)을 불러올까요? 지금 이 폰의 기록은 이 파일로 바뀌어요.</p>
     <div class="set-row"><button class="btn green" id="imok">불러올게요</button><button class="btn ghost" data-a="close">취소</button></div></div>`;document.body.appendChild(m);
-  m.querySelector('#imok').onclick=()=>{try{localStorage.setItem('kongkong-v1',JSON.stringify(o.data))}catch(e){K.toast('저장 공간이 부족해요');return}location.reload()}};rd.readAsText(f)}
+  m.querySelector('#imok').onclick=()=>{try{localStorage.setItem('kongkong-v1',JSON.stringify(Object.assign({},o.data,S.ocrKey&&!o.data.ocrKey?{ocrKey:S.ocrKey}:{})))}catch(e){K.toast('저장 공간이 부족해요');return}location.reload()}};rd.readAsText(f)}
 K.views.settings=a=>{const P=S.parent;
   a.innerHTML=`<div class="screen">${K.topbar('부모님 설정')}
   <div class="sheet"><h2>👋 아이 이름</h2><div class="set-row"><input type="text" id="nm" maxlength="8" value="${P.name||''}" placeholder="예: 서윤"></div>
@@ -124,8 +124,8 @@ K.views.settings=a=>{const P=S.parent;
   <h2 style="margin-top:12px">⏰ 하루 놀이 시간</h2><div class="set-row" id="lim"></div><p class="muted" id="used"></p>
   <h2 style="margin-top:12px">🎵 위인 노래 가사 (위콩)</h2><p>집에 있는 위인 노래 가사를 붙여 넣으면 가사 속 이름이 빈칸인 문제가 만들어져요. 가사는 이 기기에만 저장돼요.</p>
   <div class="set-row"><textarea id="lyr" rows="5" style="width:100%;font:inherit;font-size:16px;border-radius:14px;border:2px solid var(--line);padding:10px;background:var(--paper);color:var(--ink)" placeholder="가사를 한 줄씩 붙여 넣어요">${(S.lyrics||'').replace(/</g,'&lt;')}</textarea></div><p class="muted" id="lyc"></p>
-  <h2 style="margin-top:12px">✍️ 손글씨 자동 채점</h2><p>무료 채점 주소를 넣으면 콩이가 받아쓰기 글씨를 직접 읽고 글자마다 채점해요. 비워 두거나 인터넷이 안 되면 아이가 정답과 스스로 비교해요. 만드는 방법은 <a href="https://github.com/ustick7/kongkong-town/blob/main/worker/README.md" target="_blank" rel="noopener">안내서</a>에 있어요.</p>
-  <div class="set-row"><input type="text" inputmode="url" autocapitalize="off" spellcheck="false" id="ocr" placeholder="https://kongkong-ocr.○○○.workers.dev" value="${(S.ocrUrl||'').replace(/"/g,'&quot;')}" style="flex:1;min-width:0"><button class="btn ghost" id="ocrt">연결 확인</button></div><p class="muted" id="ocrm"></p>
+  <h2 style="margin-top:12px">✍️ 손글씨 자동 채점</h2><p>구글 <b>Gemini 키</b>(AIza…로 시작)를 붙여 넣고 <b>연결 확인</b>을 누르면 끝이에요. 콩이가 받아쓰기 글씨를 직접 읽고 글자마다 채점해요. 키는 이 폰에만 저장되고 기록 내보내기에도 들어가지 않아요. 비워 두면 아이가 정답과 스스로 비교해요. 키 받는 법은 <a href="https://github.com/ustick7/kongkong-town/blob/main/worker/README.md" target="_blank" rel="noopener">안내서</a>에 있어요.</p>
+  <div class="set-row"><input type="text" autocapitalize="off" autocomplete="off" spellcheck="false" id="ocr" placeholder="AIza… (또는 채점 서버 주소)" value="${(S.ocrKey||S.ocrUrl||'').replace(/"/g,'&quot;')}" style="flex:1;min-width:0;-webkit-text-security:${S.ocrKey?'disc':'none'}"><button class="btn ghost" id="ocrt">연결 확인</button></div><p class="muted" id="ocrm"></p>
   <h2 style="margin-top:12px">🌙 밤 화면 (눈 보호)</h2><p>밤 화면은 어두운 색이라 저녁에 눈이 덜 부셔요. 자동이면 폰이 다크 모드이거나 정한 시각부터 아침 7시까지 밤 화면이 돼요.</p>
   <div class="set-row" id="thm"></div><div class="set-row" id="nf"></div>
   <h2 style="margin-top:12px">🔒 비밀번호</h2><div class="set-row"><button class="btn ghost" id="pc">비밀번호 바꾸기</button></div>
@@ -155,9 +155,10 @@ K.views.settings=a=>{const P=S.parent;
     else if(t.id==='r3'){$('#rs').innerHTML=RS0}
     else if(t.id==='ex')exportData();
     else if(t.id==='im')$('#imf').click();
-    else if(t.id==='ocrt'){const u=$('#ocr').value.trim();const m=$('#ocrm');if(!/^https:\/\//.test(u)){m.textContent='https:// 로 시작하는 주소를 넣어 주세요';return}m.textContent='확인하는 중…';
-      fetch(u).then(r=>r.json()).then(j=>{if(j&&j.ok&&j.key===false){m.textContent='서버는 찾았지만 GEMINI_KEY가 없어요. 안내서 3단계를 확인해 주세요.'}else if(j&&j.ok){S.ocrUrl=u;K.save();m.innerHTML='<b style="color:var(--green-d)">✅ 연결됐어요! 이제 콩이가 글씨를 읽어요.</b>'}else m.textContent='주소는 열렸지만 채점 서버가 아니에요. 주소를 다시 확인해 주세요.'}).catch(()=>{m.textContent='연결이 안 돼요. 주소와 인터넷을 확인해 주세요.'});return}
-    else if(t.id==='sv'){if(gate&&!ms.length){K.toast('미션을 하나 이상 넣어 주세요');return}Object.assign(P,{missions:ms,limit:lim,gate,name:$('#nm').value.trim()});S.lyrics=$('#lyr').value.slice(0,6000);S.ocrUrl=$('#ocr').value.trim();K.save();K.toast('저장했어요');K.go('village')}});
+    else if(t.id==='ocrt'){const u=$('#ocr').value.trim();const m=$('#ocrm');if(!u){K.setOcr('');m.textContent='비워 두면 아이가 스스로 비교해요';return}
+      if(!K.isKey(u)&&!/^https:\/\//.test(u)){m.textContent='AIza로 시작하는 키나 https:// 주소를 넣어 주세요';return}m.textContent='확인하는 중…';
+      K.ocrCheck(u).then(r=>{if(r===true){K.setOcr(u);m.innerHTML='<b style="color:var(--green-d)">✅ 연결됐어요! 이제 콩이가 글씨를 읽어요.</b>'}else m.textContent=r}).catch(()=>{m.textContent='연결이 안 돼요. 인터넷을 확인해 주세요.'});return}
+    else if(t.id==='sv'){if(gate&&!ms.length){K.toast('미션을 하나 이상 넣어 주세요');return}Object.assign(P,{missions:ms,limit:lim,gate,name:$('#nm').value.trim()});S.lyrics=$('#lyr').value.slice(0,6000);K.setOcr($('#ocr').value.trim());K.save();K.toast('저장했어요');K.go('village')}});
 };
 
 /* 콩이 화분은 core/garden.js */

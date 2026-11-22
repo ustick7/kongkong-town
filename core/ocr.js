@@ -1,0 +1,85 @@
+/* 손글씨 읽기 (받아쓰기 자동 채점)
+   - 부모님 설정에 Gemini 키(AIza…)를 넣으면 이 폰에서 바로 구글 Gemini에 물어봐요.
+   - 채점 서버 주소(https://…)를 넣으면 그 서버(worker/ocr-worker.js)에 물어봐요.
+   정답은 절대 보내지 않아요. 정답을 알면 AI가 틀린 글씨를 맞게 고쳐 읽을 수 있어서예요.
+   확실할 때만 채점해요: 같은 사진을 두 가지 방법(글자 그대로 / 자음·모음으로 나눠서)으로 읽고,
+   둘이 똑같고 둘 다 확실하다고 할 때만 sure=true. 아니면 부모님 확인으로 넘어가요. */
+'use strict';
+(()=>{
+const S=K.S;
+const MODELS=['gemini-3.5-flash','gemini-3.1-flash-lite','gemini-2.5-flash'];
+const DAY_MAX=300; /* 하루 최대 호출 수(한 번 채점에 2번 불러요) */
+const API='https://generativelanguage.googleapis.com/v1beta/models/';
+
+const P_TEXT=n=>`이 사진은 어린아이가 손으로 쓴 한글 받아쓰기예요. 칸이 ${n}개 있어요.
+아이가 실제로 쓴 글자를 한 글자씩 그대로 옮겨 적어요.
+- 맞춤법이 틀려도 절대 고치지 말고, 보이는 그대로 적어요. (예: '우산'을 '으신'으로 썼으면 '으신')
+- 받침이 없거나 획이 빠졌으면 빠진 그대로 적어요. 비슷한 낱말로 짐작하지 말아요.
+- 알아볼 수 없거나 두 글자 중 헷갈리는 글자는 ? 로 적어요.
+- 빈칸은 ? 로 적어요. 띄어쓰기는 무시하고 글자만 이어서 적어요.
+JSON으로만 답해요: {"text":"읽은 글자","sure":true 또는 false}
+sure는 모든 글자를 확실히 읽었을 때만 true예요.`;
+const P_JAMO=n=>`이 사진은 어린아이가 손으로 쓴 한글 받아쓰기예요. 칸이 ${n}개 있어요.
+칸마다 아이가 실제로 쓴 획을 보고 초성, 중성, 종성(받침)으로 나눠 적어요.
+- 낱말을 짐작하지 말고 획만 봐요. 받침이 없으면 종성은 "" 로 적어요.
+- 겹받침·겹모음은 하나로 적어요 (예: "ㄳ", "ㅘ"). 된소리도 하나로 적어요 (예: "ㄲ").
+- 알아볼 수 없는 칸은 ["?","?","?"] 로 적어요.
+JSON으로만 답해요: {"cells":[["초성","중성","종성"], ...],"sure":true 또는 false}
+sure는 모든 칸의 모든 자모를 확실히 읽었을 때만 true예요.`;
+
+/* 자모 → 글자 */
+const CHO='ㄱㄲㄴㄷㄸㄹㅁㅂㅃㅅㅆㅇㅈㅉㅊㅋㅌㅍㅎ',JUNG='ㅏㅐㅑㅒㅓㅔㅕㅖㅗㅘㅙㅚㅛㅜㅝㅞㅟㅠㅡㅢㅣ',JONG=['','ㄱ','ㄲ','ㄳ','ㄴ','ㄵ','ㄶ','ㄷ','ㄹ','ㄺ','ㄻ','ㄼ','ㄽ','ㄾ','ㄿ','ㅀ','ㅁ','ㅂ','ㅄ','ㅅ','ㅆ','ㅇ','ㅈ','ㅊ','ㅋ','ㅌ','ㅍ','ㅎ'];
+const compose=c=>{if(!Array.isArray(c))return '?';const [a,b,z]=c.map(x=>String(x==null?'':x).trim());const i=CHO.indexOf(a),j=JUNG.indexOf(b),k=JONG.indexOf(z||'');
+  if(!a||!b||i<0||j<0||k<0)return '?';return String.fromCharCode(0xAC00+(i*21+j)*28+k)};
+K.ocrCompose=compose;
+
+/* 답 글에서 JSON 꺼내기 (```json … ``` 으로 감싸 와도) */
+const parse=raw=>{const s=String(raw||'').replace(/```(?:json)?/gi,'').trim();try{return JSON.parse(s)}catch(e){}
+  const m=/\{[\s\S]*\}/.exec(s);if(m){try{return JSON.parse(m[0])}catch(e){}}return null};
+const clean=t=>String(t||'').replace(/\s/g,'').slice(0,40);
+/* 두 번 읽은 결과로 확실한지 정해요 */
+K.ocrDecide=(a,b,n)=>{const ta=a?clean(a.text):'';const tb=b&&Array.isArray(b.cells)?b.cells.map(compose).join(''):'';
+  const why=!a||!b?'read':!ta?'empty':[...ta].length!==n?'len':/\?/.test(ta+tb)?'unclear':ta!==tb?'differ':!(a.sure===true&&b.sure===true)?'unsure':'';
+  return {text:ta,alt:tb,sure:!why,why}};
+
+K.isKey=u=>/^AIza[\w-]{20,}$/.test(String(u||'').trim());
+K.ocrOn=()=>!!(S.ocrKey||S.ocrUrl);
+K.setOcr=u=>{u=String(u||'').trim();if(K.isKey(u)){S.ocrKey=u;S.ocrUrl=''}else{S.ocrUrl=u;S.ocrKey=''}K.save()};
+const count=()=>{const d=new Date().toISOString().slice(0,10);if(!S.ocrN||S.ocrN.d!==d)S.ocrN={d,n:0};return S.ocrN};
+
+const timeout=(ms,ac)=>setTimeout(()=>ac.abort(),ms);
+async function gemini(key,prompt,mime,data,signal){let last=0;
+  for(const model of MODELS){for(const think of [true,false]){
+    const body={contents:[{parts:[{text:prompt},{inline_data:{mime_type:mime,data}}]}],
+      generationConfig:Object.assign({temperature:0,responseMimeType:'application/json',maxOutputTokens:600},think?{thinkingConfig:{thinkingBudget:0}}:{})};
+    const r=await fetch(API+model+':generateContent',{method:'POST',headers:{'Content-Type':'application/json','x-goog-api-key':key},body:JSON.stringify(body),signal});
+    last=r.status;
+    if(r.ok){const j=await r.json();const raw=(((j.candidates||[])[0]||{}).content||{}).parts;return parse((raw||[]).map(p=>p.text||'').join(''))}
+    if(r.status===400&&think)continue; /* 생각 끄기 설정을 모르는 모델이면 설정 없이 한 번 더 */
+    break}
+    if(![400,403,404,429,500,503].includes(last))break; /* 키가 틀린 것(401 등)이면 다른 모델도 소용없어요 */}
+  throw new Error('gemini '+last)}
+
+/* 읽기: {text, sure, why} 또는 null(연결 안 됨) */
+K.ocrRead=async(img,n)=>{const ac=new AbortController();const to=timeout(25000,ac);
+  try{
+    if(S.ocrKey){const c=count();if(c.n+2>DAY_MAX)return null;c.n+=2;K.save();
+      const m=/^data:(image\/(?:jpeg|png));base64,(.+)$/.exec(img||'');if(!m)return null;
+      const [a,b]=await Promise.all([gemini(S.ocrKey,P_TEXT(n),m[1],m[2],ac.signal).catch(()=>null),gemini(S.ocrKey,P_JAMO(n),m[1],m[2],ac.signal).catch(()=>null)]);
+      if(!a&&!b)return null;return K.ocrDecide(a,b,n)}
+    if(S.ocrUrl){const r=await fetch(S.ocrUrl,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({image:img,cells:n}),signal:ac.signal});
+      if(!r.ok)return null;const j=await r.json();if(!j||typeof j.text!=='string')return null;
+      const t=clean(j.text);return {text:t,sure:!!j.sure&&[...t].length===n&&!/\?/.test(t),why:j.why||''}}
+    return null}
+  catch(e){return null}finally{clearTimeout(to)}};
+
+/* 설정의 '연결 확인': true 또는 안내 문장 */
+K.ocrCheck=async u=>{
+  if(K.isKey(u)){const r=await fetch(API.replace(/models\/$/,'models')+'?pageSize=50',{headers:{'x-goog-api-key':u}});
+    if(r.ok){const j=await r.json().catch(()=>({}));const names=(j.models||[]).map(x=>x.name||'');return names.length&&!names.some(x=>/gemini-[\d.]+-flash/.test(x))?'키는 맞지만 글씨를 읽을 Flash 모델이 안 보여요. 잠시 뒤 다시 확인해 주세요.':true}
+    if(r.status===400||r.status===401||r.status===403)return '키가 맞지 않아요. AIza로 시작하는 키를 처음부터 끝까지 다시 복사해 주세요.';
+    if(r.status===429)return '오늘 무료 사용량을 다 썼어요. 내일 다시 확인해 주세요.';return '구글 서버가 답하지 않아요 ('+r.status+'). 잠시 뒤 다시 해 주세요.'}
+  const r=await fetch(u);const j=await r.json().catch(()=>null);
+  if(j&&j.ok&&j.key===false)return '서버는 찾았지만 GEMINI_KEY가 없어요. 안내서를 확인해 주세요.';
+  if(j&&j.ok)return true;return '주소는 열렸지만 채점 서버가 아니에요. 주소를 다시 확인해 주세요.'};
+})();
