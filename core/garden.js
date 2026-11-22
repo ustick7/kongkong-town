@@ -65,7 +65,7 @@ const KINDS=[
 ];
 const STAGES=[[0,'씨앗'],[1,'새싹'],[3,'떡잎'],[6,'줄기'],[10,'꽃봉오리'],[15,'꽃'],[21,'콩꼬투리']];
 const stageOf=w=>STAGES.filter(s=>w>=s[0]).length-1;
-const COST=3,GOAL=10,BONUS=5;
+const COST=24,GOAL=10,BONUS=5;
 
 /* 콩이 꾸미기: 칸(머리·얼굴·목·손·등·몸 색)마다 하나씩 입어요. need: 수확 몇 번 해야 열리는지 */
 const fl=(x,y,c,r=4)=>`<g transform="translate(${x} ${y})">${[0,72,144,216,288].map(a=>`<circle r="${r}" cx="${r*1.3*Math.sin(a*Math.PI/180)}" cy="${-r*1.3*Math.cos(a*Math.PI/180)}" fill="${c}"/>`).join('')}<circle r="${r*.8}" fill="#FFC845"/></g>`;
@@ -74,77 +74,77 @@ const heart=(x,y,s,c)=>`<path transform="translate(${x} ${y}) scale(${s})" d="M0
 const SLOTS=[['head','🎩 머리'],['face','😎 얼굴'],['neck','🎀 목'],['hand','🎈 손'],['back','🦋 등'],['body','🎨 몸 색'],['friend','🐾 정원 친구'],['bg','🏞️ 정원 배경'],['pot','🪴 화분']];
 const WEAR={
  head:[
-  {id:'flower',n:'꽃 핀',c:8,f:fl(30,26,'#FF9DB5',5)},
-  {id:'ribbon',n:'리본',c:10,f:`<g transform="translate(86 26) rotate(20)"><path d="M0 0 L-15 -10 Q-18 0 -15 10Z M0 0 L15 -10 Q18 0 15 10Z" fill="#FF6F91"/><circle r="4.5" fill="#E0507A"/></g>`},
-  {id:'party',n:'고깔모자',c:12,f:`<path d="M44 22 L60 -12 L76 22Z" fill="#4A9FE8"/><path d="M48 14 L72 14 M52 5 L68 5 M56 -4 L64 -4" stroke="#FFC845" stroke-width="3"/><circle cx="60" cy="-12" r="5" fill="#FF6F91"/>`},
-  {id:'catear',n:'고양이 귀',c:15,f:`<path d="M28 32 L32 4 L52 20Z M92 32 L88 4 L68 20Z" fill="#9AD27A"/><path d="M33 24 L35 10 L45 19Z M87 24 L85 10 L75 19Z" fill="#FF9DB5"/>`},
-  {id:'bunny',n:'토끼 귀',c:15,f:`<ellipse cx="44" cy="2" rx="8" ry="22" fill="#fff" transform="rotate(-12 44 20)"/><ellipse cx="76" cy="2" rx="8" ry="22" fill="#fff" transform="rotate(12 76 20)"/><ellipse cx="44" cy="4" rx="4" ry="15" fill="#FFB8C9" transform="rotate(-12 44 20)"/><ellipse cx="76" cy="4" rx="4" ry="15" fill="#FFB8C9" transform="rotate(12 76 20)"/>`},
-  {id:'wreath',n:'꽃 화관',c:20,f:`<path d="M30 30 Q60 6 90 30" stroke="#6DBB52" stroke-width="4" fill="none"/>${fl(32,28,'#FF9DB5',4)}${fl(46,19,'#FFE066',4)}${fl(60,16,'#B48CF0',4)}${fl(74,19,'#7EC8F5',4)}${fl(88,28,'#FF9DB5',4)}`},
-  {id:'phones',n:'헤드폰',c:22,f:`<path d="M22 58 Q22 10 60 10 Q98 10 98 58" stroke="#3D3A50" stroke-width="5" fill="none"/><rect x="14" y="48" width="14" height="22" rx="7" fill="#FF6F91"/><rect x="92" y="48" width="14" height="22" rx="7" fill="#FF6F91"/>`},
-  {id:'wizard',n:'마법사 모자',c:30,f:`<path d="M36 24 Q56 6 66 -14 Q72 6 86 24Z" fill="#6B4FB0"/><ellipse cx="61" cy="24" rx="32" ry="6" fill="#5A3F99"/>${star(58,4,5,'#FFE066')}${star(70,14,3.5,'#FFE066')}`},
-  {id:'crown',n:'왕관',c:60,need:3,f:`<path d="M38 26 L40 2 L50 14 L60 -4 L70 14 L80 2 L82 26Z" fill="#FFC845" stroke="#E0A800" stroke-width="2" stroke-linejoin="round"/><circle cx="60" cy="16" r="3.5" fill="#F2665E"/><circle cx="46" cy="20" r="2.5" fill="#4A9FE8"/><circle cx="74" cy="20" r="2.5" fill="#4CB963"/>`},
+  {id:'flower',n:'꽃 핀',c:64,f:fl(30,26,'#FF9DB5',5)},
+  {id:'ribbon',n:'리본',c:80,f:`<g transform="translate(86 26) rotate(20)"><path d="M0 0 L-15 -10 Q-18 0 -15 10Z M0 0 L15 -10 Q18 0 15 10Z" fill="#FF6F91"/><circle r="4.5" fill="#E0507A"/></g>`},
+  {id:'party',n:'고깔모자',c:96,f:`<path d="M44 22 L60 -12 L76 22Z" fill="#4A9FE8"/><path d="M48 14 L72 14 M52 5 L68 5 M56 -4 L64 -4" stroke="#FFC845" stroke-width="3"/><circle cx="60" cy="-12" r="5" fill="#FF6F91"/>`},
+  {id:'catear',n:'고양이 귀',c:120,f:`<path d="M28 32 L32 4 L52 20Z M92 32 L88 4 L68 20Z" fill="#9AD27A"/><path d="M33 24 L35 10 L45 19Z M87 24 L85 10 L75 19Z" fill="#FF9DB5"/>`},
+  {id:'bunny',n:'토끼 귀',c:120,f:`<ellipse cx="44" cy="2" rx="8" ry="22" fill="#fff" transform="rotate(-12 44 20)"/><ellipse cx="76" cy="2" rx="8" ry="22" fill="#fff" transform="rotate(12 76 20)"/><ellipse cx="44" cy="4" rx="4" ry="15" fill="#FFB8C9" transform="rotate(-12 44 20)"/><ellipse cx="76" cy="4" rx="4" ry="15" fill="#FFB8C9" transform="rotate(12 76 20)"/>`},
+  {id:'wreath',n:'꽃 화관',c:160,f:`<path d="M30 30 Q60 6 90 30" stroke="#6DBB52" stroke-width="4" fill="none"/>${fl(32,28,'#FF9DB5',4)}${fl(46,19,'#FFE066',4)}${fl(60,16,'#B48CF0',4)}${fl(74,19,'#7EC8F5',4)}${fl(88,28,'#FF9DB5',4)}`},
+  {id:'phones',n:'헤드폰',c:176,f:`<path d="M22 58 Q22 10 60 10 Q98 10 98 58" stroke="#3D3A50" stroke-width="5" fill="none"/><rect x="14" y="48" width="14" height="22" rx="7" fill="#FF6F91"/><rect x="92" y="48" width="14" height="22" rx="7" fill="#FF6F91"/>`},
+  {id:'wizard',n:'마법사 모자',c:240,f:`<path d="M36 24 Q56 6 66 -14 Q72 6 86 24Z" fill="#6B4FB0"/><ellipse cx="61" cy="24" rx="32" ry="6" fill="#5A3F99"/>${star(58,4,5,'#FFE066')}${star(70,14,3.5,'#FFE066')}`},
+  {id:'crown',n:'왕관',c:480,need:3,f:`<path d="M38 26 L40 2 L50 14 L60 -4 L70 14 L80 2 L82 26Z" fill="#FFC845" stroke="#E0A800" stroke-width="2" stroke-linejoin="round"/><circle cx="60" cy="16" r="3.5" fill="#F2665E"/><circle cx="46" cy="20" r="2.5" fill="#4A9FE8"/><circle cx="74" cy="20" r="2.5" fill="#4CB963"/>`},
  ],
  face:[
-  {id:'shades',n:'선글라스',c:12,f:`<path d="M34 52 h52" stroke="#222" stroke-width="2.5"/><rect x="33" y="45" width="23" height="14" rx="6" fill="#222"/><rect x="64" y="45" width="23" height="14" rx="6" fill="#222"/><path d="M37 48 h6 M68 48 h6" stroke="#fff" stroke-width="2" opacity=".7"/>`},
-  {id:'heartg',n:'하트 안경',c:15,f:`<path d="M54 50 h12" stroke="#E0507A" stroke-width="2.5"/>${heart(46,52,1.6,'#FF6F91')}${heart(74,52,1.6,'#FF6F91')}${heart(46,52,1.1,'#FFC2D3')}${heart(74,52,1.1,'#FFC2D3')}`},
-  {id:'round',n:'동그란 안경',c:10,f:`<circle cx="46" cy="52" r="10" fill="rgba(255,255,255,.2)" stroke="#8B5A2B" stroke-width="2.5"/><circle cx="74" cy="52" r="10" fill="rgba(255,255,255,.2)" stroke="#8B5A2B" stroke-width="2.5"/><path d="M56 52 h8" stroke="#8B5A2B" stroke-width="2.5"/>`},
-  {id:'stache',n:'멋진 수염',c:10,f:`<path d="M60 61 C54 56 44 58 40 64 C46 62 52 64 60 63 C68 64 74 62 80 64 C76 58 66 56 60 61Z" fill="#5B3A29"/>`},
-  {id:'stars',n:'반짝 볼',c:8,f:`${star(36,64,5,'#FFC845')}${star(84,64,5,'#FFC845')}`},
-  {id:'mask',n:'영웅 가면',c:20,f:`<path d="M30 46 Q60 38 90 46 Q92 58 80 60 Q70 60 60 54 Q50 60 40 60 Q28 58 30 46Z" fill="#F2665E"/><circle cx="46" cy="52" r="6.5" fill="#3D2E28"/><circle cx="74" cy="52" r="6.5" fill="#3D2E28"/><circle cx="48.4" cy="49.6" r="2.2" fill="#fff"/><circle cx="76.4" cy="49.6" r="2.2" fill="#fff"/>`},
+  {id:'shades',n:'선글라스',c:96,f:`<path d="M34 52 h52" stroke="#222" stroke-width="2.5"/><rect x="33" y="45" width="23" height="14" rx="6" fill="#222"/><rect x="64" y="45" width="23" height="14" rx="6" fill="#222"/><path d="M37 48 h6 M68 48 h6" stroke="#fff" stroke-width="2" opacity=".7"/>`},
+  {id:'heartg',n:'하트 안경',c:120,f:`<path d="M54 50 h12" stroke="#E0507A" stroke-width="2.5"/>${heart(46,52,1.6,'#FF6F91')}${heart(74,52,1.6,'#FF6F91')}${heart(46,52,1.1,'#FFC2D3')}${heart(74,52,1.1,'#FFC2D3')}`},
+  {id:'round',n:'동그란 안경',c:80,f:`<circle cx="46" cy="52" r="10" fill="rgba(255,255,255,.2)" stroke="#8B5A2B" stroke-width="2.5"/><circle cx="74" cy="52" r="10" fill="rgba(255,255,255,.2)" stroke="#8B5A2B" stroke-width="2.5"/><path d="M56 52 h8" stroke="#8B5A2B" stroke-width="2.5"/>`},
+  {id:'stache',n:'멋진 수염',c:80,f:`<path d="M60 61 C54 56 44 58 40 64 C46 62 52 64 60 63 C68 64 74 62 80 64 C76 58 66 56 60 61Z" fill="#5B3A29"/>`},
+  {id:'stars',n:'반짝 볼',c:64,f:`${star(36,64,5,'#FFC845')}${star(84,64,5,'#FFC845')}`},
+  {id:'mask',n:'영웅 가면',c:160,f:`<path d="M30 46 Q60 38 90 46 Q92 58 80 60 Q70 60 60 54 Q50 60 40 60 Q28 58 30 46Z" fill="#F2665E"/><circle cx="46" cy="52" r="6.5" fill="#3D2E28"/><circle cx="74" cy="52" r="6.5" fill="#3D2E28"/><circle cx="48.4" cy="49.6" r="2.2" fill="#fff"/><circle cx="76.4" cy="49.6" r="2.2" fill="#fff"/>`},
  ],
  neck:[
-  {id:'bowtie',n:'나비넥타이',c:10,f:`<g transform="translate(60 96)"><path d="M0 0 L-13 -8 L-13 8Z M0 0 L13 -8 L13 8Z" fill="#4A9FE8"/><circle r="3.5" fill="#2F7AC4"/></g>`},
-  {id:'scarf',n:'목도리',c:15,f:`<path d="M27 86 Q60 100 93 86 L95 95 Q60 110 25 95Z" fill="#F2665E"/><path d="M78 96 l6 18 l8 -3 l-5 -17Z" fill="#E0504A"/><path d="M30 90 Q60 103 90 90" stroke="#fff" stroke-width="2" stroke-dasharray="4 4" fill="none" opacity=".7"/>`},
-  {id:'pearl',n:'진주 목걸이',c:18,f:Array.from({length:11},(_,i)=>{const t=i/10;const x=32+56*t,y=88+10*Math.sin(Math.PI*t);return `<circle cx="${x}" cy="${y}" r="3.2" fill="#fff" stroke="#E6DCCF"/>`}).join('')},
-  {id:'bell',n:'방울 목걸이',c:12,f:`<path d="M30 88 Q60 100 90 88" stroke="#F2665E" stroke-width="5" fill="none"/><circle cx="60" cy="98" r="6" fill="#FFC845" stroke="#E0A800" stroke-width="1.5"/><path d="M56 99 h8" stroke="#B07A00" stroke-width="1.5"/>`},
-  {id:'bandana',n:'반다나',c:12,f:`<path d="M30 86 Q60 96 90 86 L60 108Z" fill="#4A9FE8"/><circle cx="52" cy="94" r="2" fill="#fff"/><circle cx="66" cy="96" r="2" fill="#fff"/><circle cx="60" cy="102" r="2" fill="#fff"/>`},
-  {id:'medal',n:'금메달',c:35,need:1,f:`<path d="M50 80 L58 96 M70 80 L62 96" stroke="#4A9FE8" stroke-width="5"/><circle cx="60" cy="100" r="8" fill="#FFC845" stroke="#E0A800" stroke-width="2"/>${star(60,100,4.5,'#FFF1A8')}`},
+  {id:'bowtie',n:'나비넥타이',c:80,f:`<g transform="translate(60 96)"><path d="M0 0 L-13 -8 L-13 8Z M0 0 L13 -8 L13 8Z" fill="#4A9FE8"/><circle r="3.5" fill="#2F7AC4"/></g>`},
+  {id:'scarf',n:'목도리',c:120,f:`<path d="M27 86 Q60 100 93 86 L95 95 Q60 110 25 95Z" fill="#F2665E"/><path d="M78 96 l6 18 l8 -3 l-5 -17Z" fill="#E0504A"/><path d="M30 90 Q60 103 90 90" stroke="#fff" stroke-width="2" stroke-dasharray="4 4" fill="none" opacity=".7"/>`},
+  {id:'pearl',n:'진주 목걸이',c:144,f:Array.from({length:11},(_,i)=>{const t=i/10;const x=32+56*t,y=88+10*Math.sin(Math.PI*t);return `<circle cx="${x}" cy="${y}" r="3.2" fill="#fff" stroke="#E6DCCF"/>`}).join('')},
+  {id:'bell',n:'방울 목걸이',c:96,f:`<path d="M30 88 Q60 100 90 88" stroke="#F2665E" stroke-width="5" fill="none"/><circle cx="60" cy="98" r="6" fill="#FFC845" stroke="#E0A800" stroke-width="1.5"/><path d="M56 99 h8" stroke="#B07A00" stroke-width="1.5"/>`},
+  {id:'bandana',n:'반다나',c:96,f:`<path d="M30 86 Q60 96 90 86 L60 108Z" fill="#4A9FE8"/><circle cx="52" cy="94" r="2" fill="#fff"/><circle cx="66" cy="96" r="2" fill="#fff"/><circle cx="60" cy="102" r="2" fill="#fff"/>`},
+  {id:'medal',n:'금메달',c:280,need:1,f:`<path d="M50 80 L58 96 M70 80 L62 96" stroke="#4A9FE8" stroke-width="5"/><circle cx="60" cy="100" r="8" fill="#FFC845" stroke="#E0A800" stroke-width="2"/>${star(60,100,4.5,'#FFF1A8')}`},
  ],
  hand:[
-  {id:'balloon',n:'풍선',c:10,f:`<path d="M102 86 Q110 60 108 34" stroke="#888" stroke-width="1.2" fill="none"/><ellipse cx="108" cy="22" rx="11" ry="13" fill="#FF6F91"/><ellipse cx="104" cy="17" rx="3" ry="4" fill="#fff" opacity=".6"/><path d="M106 35 l2 -2 l2 2Z" fill="#FF6F91"/>`},
-  {id:'lolly',n:'막대사탕',c:10,f:`<path d="M103 88 V62" stroke="#fff" stroke-width="3"/><circle cx="103" cy="54" r="10" fill="#FFB8C9"/><path d="M103 54 m-6 0 a6 6 0 1 1 6 6 a4 4 0 1 1 -4 -4 a2 2 0 1 1 2 2" stroke="#FF6F91" stroke-width="2" fill="none"/>`},
-  {id:'icecream',n:'아이스크림',c:12,f:`<path d="M96 70 L104 92 L112 70Z" fill="#E8B57A"/><circle cx="104" cy="66" r="8" fill="#FFB8C9"/><circle cx="104" cy="56" r="7" fill="#C9F0E0"/><circle cx="104" cy="49" r="3" fill="#F2665E"/>`},
-  {id:'bouquet',n:'꽃다발',c:15,f:`<path d="M100 92 L104 74 L108 92Z" fill="#8FD873"/>${fl(98,70,'#FF9DB5',3.5)}${fl(110,68,'#FFE066',3.5)}${fl(104,60,'#B48CF0',3.5)}`},
-  {id:'wand',n:'요술봉',c:25,f:`<path d="M102 90 L110 56" stroke="#B48CF0" stroke-width="3" stroke-linecap="round"/>${star(111,50,9,'#FFE066')}<circle cx="100" cy="44" r="1.5" fill="#FFE066"/><circle cx="118" cy="62" r="1.5" fill="#FFE066"/>`},
-  {id:'pencilh',n:'큰 연필',c:15,f:`<g transform="translate(104 88) rotate(-20)"><rect x="-4" y="-36" width="8" height="32" fill="#FFC845"/><path d="M-4 -36 L0 -46 L4 -36Z" fill="#F6D3A8"/><path d="M-1.5 -42 L0 -46 L1.5 -42Z" fill="#3D2E28"/><rect x="-4" y="-6" width="8" height="6" fill="#FF9DB5"/></g>`},
+  {id:'balloon',n:'풍선',c:80,f:`<path d="M102 86 Q110 60 108 34" stroke="#888" stroke-width="1.2" fill="none"/><ellipse cx="108" cy="22" rx="11" ry="13" fill="#FF6F91"/><ellipse cx="104" cy="17" rx="3" ry="4" fill="#fff" opacity=".6"/><path d="M106 35 l2 -2 l2 2Z" fill="#FF6F91"/>`},
+  {id:'lolly',n:'막대사탕',c:80,f:`<path d="M103 88 V62" stroke="#fff" stroke-width="3"/><circle cx="103" cy="54" r="10" fill="#FFB8C9"/><path d="M103 54 m-6 0 a6 6 0 1 1 6 6 a4 4 0 1 1 -4 -4 a2 2 0 1 1 2 2" stroke="#FF6F91" stroke-width="2" fill="none"/>`},
+  {id:'icecream',n:'아이스크림',c:96,f:`<path d="M96 70 L104 92 L112 70Z" fill="#E8B57A"/><circle cx="104" cy="66" r="8" fill="#FFB8C9"/><circle cx="104" cy="56" r="7" fill="#C9F0E0"/><circle cx="104" cy="49" r="3" fill="#F2665E"/>`},
+  {id:'bouquet',n:'꽃다발',c:120,f:`<path d="M100 92 L104 74 L108 92Z" fill="#8FD873"/>${fl(98,70,'#FF9DB5',3.5)}${fl(110,68,'#FFE066',3.5)}${fl(104,60,'#B48CF0',3.5)}`},
+  {id:'wand',n:'요술봉',c:200,f:`<path d="M102 90 L110 56" stroke="#B48CF0" stroke-width="3" stroke-linecap="round"/>${star(111,50,9,'#FFE066')}<circle cx="100" cy="44" r="1.5" fill="#FFE066"/><circle cx="118" cy="62" r="1.5" fill="#FFE066"/>`},
+  {id:'pencilh',n:'큰 연필',c:120,f:`<g transform="translate(104 88) rotate(-20)"><rect x="-4" y="-36" width="8" height="32" fill="#FFC845"/><path d="M-4 -36 L0 -46 L4 -36Z" fill="#F6D3A8"/><path d="M-1.5 -42 L0 -46 L1.5 -42Z" fill="#3D2E28"/><rect x="-4" y="-6" width="8" height="6" fill="#FF9DB5"/></g>`},
  ],
  back:[
-  {id:'cape',n:'망토',c:25,b:`<path d="M36 40 Q60 30 84 40 L104 112 Q60 122 16 112Z" fill="#E0504A"/>`,f:`<circle cx="60" cy="96" r="4" fill="#FFC845"/>`},
-  {id:'angel',n:'천사 날개',c:30,b:`<path d="M28 62 Q0 40 2 70 Q6 86 26 82Z M92 62 Q120 40 118 70 Q114 86 94 82Z" fill="#fff" stroke="#E6E1F2" stroke-width="2"/><path d="M8 64 Q16 70 24 70 M8 74 Q16 78 24 78 M112 64 Q104 70 96 70 M112 74 Q104 78 96 78" stroke="#E6E1F2" stroke-width="2" fill="none"/>`},
-  {id:'bflyw',n:'나비 날개',c:30,need:1,b:`<path d="M30 60 Q-2 30 4 64 Q8 78 30 74Z M30 76 Q4 84 10 100 Q20 104 32 86Z M90 60 Q122 30 116 64 Q112 78 90 74Z M90 76 Q116 84 110 100 Q100 104 88 86Z" fill="#B48CF0"/><circle cx="14" cy="60" r="4" fill="#FFE066"/><circle cx="106" cy="60" r="4" fill="#FFE066"/><circle cx="16" cy="92" r="3" fill="#7EC8F5"/><circle cx="104" cy="92" r="3" fill="#7EC8F5"/>`},
-  {id:'dino',n:'공룡 가시',c:30,need:1,b:`<path d="M44 22 L50 6 L58 20 L66 4 L74 22 L86 10 L88 30 L100 24 L98 44Z" fill="#F2A33A"/>`},
-  {id:'shell',n:'거북 등딱지',c:25,b:`<ellipse cx="60" cy="72" rx="46" ry="40" fill="#8B5A2B"/><path d="M60 40 L78 52 L72 74 L48 74 L42 52Z" fill="#A8703C" stroke="#6E4520" stroke-width="2"/>`},
-  {id:'jet',n:'로켓 가방',c:45,need:2,b:`<rect x="8" y="50" width="16" height="36" rx="6" fill="#B9C2D0"/><rect x="96" y="50" width="16" height="36" rx="6" fill="#B9C2D0"/><path class="fire" d="M10 86 L16 104 L22 86Z M98 86 L104 104 L110 86Z" fill="#FF8A3D"/>`},
+  {id:'cape',n:'망토',c:200,b:`<path d="M36 40 Q60 30 84 40 L104 112 Q60 122 16 112Z" fill="#E0504A"/>`,f:`<circle cx="60" cy="96" r="4" fill="#FFC845"/>`},
+  {id:'angel',n:'천사 날개',c:240,b:`<path d="M28 62 Q0 40 2 70 Q6 86 26 82Z M92 62 Q120 40 118 70 Q114 86 94 82Z" fill="#fff" stroke="#E6E1F2" stroke-width="2"/><path d="M8 64 Q16 70 24 70 M8 74 Q16 78 24 78 M112 64 Q104 70 96 70 M112 74 Q104 78 96 78" stroke="#E6E1F2" stroke-width="2" fill="none"/>`},
+  {id:'bflyw',n:'나비 날개',c:240,need:1,b:`<path d="M30 60 Q-2 30 4 64 Q8 78 30 74Z M30 76 Q4 84 10 100 Q20 104 32 86Z M90 60 Q122 30 116 64 Q112 78 90 74Z M90 76 Q116 84 110 100 Q100 104 88 86Z" fill="#B48CF0"/><circle cx="14" cy="60" r="4" fill="#FFE066"/><circle cx="106" cy="60" r="4" fill="#FFE066"/><circle cx="16" cy="92" r="3" fill="#7EC8F5"/><circle cx="104" cy="92" r="3" fill="#7EC8F5"/>`},
+  {id:'dino',n:'공룡 가시',c:240,need:1,b:`<path d="M44 22 L50 6 L58 20 L66 4 L74 22 L86 10 L88 30 L100 24 L98 44Z" fill="#F2A33A"/>`},
+  {id:'shell',n:'거북 등딱지',c:200,b:`<ellipse cx="60" cy="72" rx="46" ry="40" fill="#8B5A2B"/><path d="M60 40 L78 52 L72 74 L48 74 L42 52Z" fill="#A8703C" stroke="#6E4520" stroke-width="2"/>`},
+  {id:'jet',n:'로켓 가방',c:360,need:2,b:`<rect x="8" y="50" width="16" height="36" rx="6" fill="#B9C2D0"/><rect x="96" y="50" width="16" height="36" rx="6" fill="#B9C2D0"/><path class="fire" d="M10 86 L16 104 L22 86Z M98 86 L104 104 L110 86Z" fill="#FF8A3D"/>`},
  ],
  body:[
-  {id:'sky',n:'하늘색',c:15,pal:['#8CCBF2','#72B7E6','#D6EEFC','#5EA2D4']},
-  {id:'pink',n:'분홍색',c:15,pal:['#F7A8C4','#EE8FB0','#FDDDE8','#D97A9C']},
-  {id:'yellow',n:'노란색',c:15,pal:['#FFD95A','#F5C53B','#FFF2B8','#E0AD22']},
-  {id:'purple',n:'보라색',c:20,pal:['#B99BEB','#A384DE','#E6DBFA','#8C6CC9']},
-  {id:'mint',n:'민트색',c:20,pal:['#7EDCC6','#62CDB4','#CFF5EC','#4AB79E']},
-  {id:'peach',n:'복숭아색',c:20,pal:['#FFB48A','#F79D6E','#FFE2CF','#E0855A']},
-  {id:'gold',n:'황금색',c:60,need:3,pal:['#F5C518','#E0AE00','#FFF0A8','#C99A00']},
+  {id:'sky',n:'하늘색',c:120,pal:['#8CCBF2','#72B7E6','#D6EEFC','#5EA2D4']},
+  {id:'pink',n:'분홍색',c:120,pal:['#F7A8C4','#EE8FB0','#FDDDE8','#D97A9C']},
+  {id:'yellow',n:'노란색',c:120,pal:['#FFD95A','#F5C53B','#FFF2B8','#E0AD22']},
+  {id:'purple',n:'보라색',c:160,pal:['#B99BEB','#A384DE','#E6DBFA','#8C6CC9']},
+  {id:'mint',n:'민트색',c:160,pal:['#7EDCC6','#62CDB4','#CFF5EC','#4AB79E']},
+  {id:'peach',n:'복숭아색',c:160,pal:['#FFB48A','#F79D6E','#FFE2CF','#E0855A']},
+  {id:'gold',n:'황금색',c:480,need:3,pal:['#F5C518','#E0AE00','#FFF0A8','#C99A00']},
  ],
 };
 const ALLW=Object.entries(WEAR).flatMap(([k,a])=>a.map(x=>Object.assign({k},x)));
 /* 정원 친구: fly는 하늘을 날고, 나머지는 땅에서 놀아요 */
 const FRIENDS=[
- {id:'bfly',n:'나비',e:'🦋',c:15,fly:1,say:'팔랑팔랑~'},{id:'bee',n:'꿀벌',e:'🐝',c:15,fly:1,say:'윙윙! 꽃이 예쁘다!'},{id:'lady',n:'무당벌레',e:'🐞',c:12,fly:1,say:'점이 일곱 개야!'},{id:'bird',n:'파랑새',e:'🐦',c:20,fly:1,say:'짹짹! 노래 불러 줄게'},
- {id:'chick',n:'병아리',e:'🐥',c:15,say:'삐약삐약!'},{id:'snail',n:'달팽이',e:'🐌',c:12,say:'천천히… 가도… 괜찮아…'},{id:'frog',n:'개구리',e:'🐸',c:18,say:'개굴개굴! 점프!'},
- {id:'cat',n:'고양이',e:'🐱',c:25,say:'야옹~ 쓰다듬어 줘'},{id:'dog',n:'강아지',e:'🐶',c:25,say:'멍멍! 같이 놀자!'},{id:'bunny',n:'토끼',e:'🐰',c:25,say:'깡충깡충! 당근 있어?'},
- {id:'squirrel',n:'다람쥐',e:'🐿️',c:25,need:1,say:'도토리 숨겨 놨지롱!'},{id:'hedge',n:'고슴도치',e:'🦔',c:30,need:1,say:'가시는 있지만 착해!'},{id:'duck',n:'오리',e:'🦆',c:25,need:2,say:'꽥꽥! 물 주는 거 도와줄게'},
- {id:'turtle',n:'거북이',e:'🐢',c:30,need:2,say:'느려도 끝까지 가!'},{id:'panda',n:'판다',e:'🐼',c:50,need:3,say:'대나무 맛있다~'},{id:'unicorn',n:'유니콘',e:'🦄',c:80,need:5,say:'반짝반짝! 꿈을 이뤄 줄게!'},
+ {id:'bfly',n:'나비',e:'🦋',c:120,fly:1,say:'팔랑팔랑~'},{id:'bee',n:'꿀벌',e:'🐝',c:120,fly:1,say:'윙윙! 꽃이 예쁘다!'},{id:'lady',n:'무당벌레',e:'🐞',c:96,fly:1,say:'점이 일곱 개야!'},{id:'bird',n:'파랑새',e:'🐦',c:160,fly:1,say:'짹짹! 노래 불러 줄게'},
+ {id:'chick',n:'병아리',e:'🐥',c:120,say:'삐약삐약!'},{id:'snail',n:'달팽이',e:'🐌',c:96,say:'천천히… 가도… 괜찮아…'},{id:'frog',n:'개구리',e:'🐸',c:144,say:'개굴개굴! 점프!'},
+ {id:'cat',n:'고양이',e:'🐱',c:200,say:'야옹~ 쓰다듬어 줘'},{id:'dog',n:'강아지',e:'🐶',c:200,say:'멍멍! 같이 놀자!'},{id:'bunny',n:'토끼',e:'🐰',c:200,say:'깡충깡충! 당근 있어?'},
+ {id:'squirrel',n:'다람쥐',e:'🐿️',c:200,need:1,say:'도토리 숨겨 놨지롱!'},{id:'hedge',n:'고슴도치',e:'🦔',c:240,need:1,say:'가시는 있지만 착해!'},{id:'duck',n:'오리',e:'🦆',c:200,need:2,say:'꽥꽥! 물 주는 거 도와줄게'},
+ {id:'turtle',n:'거북이',e:'🐢',c:240,need:2,say:'느려도 끝까지 가!'},{id:'panda',n:'판다',e:'🐼',c:400,need:3,say:'대나무 맛있다~'},{id:'unicorn',n:'유니콘',e:'🦄',c:640,need:5,say:'반짝반짝! 꿈을 이뤄 줄게!'},
 ];
 /* 정원 배경 */
 const BGS=[
  {id:'',n:'꽃밭',c:0,css:'linear-gradient(#CFEBFF,#EAF6FF 58%,#B7E08F 58%,#9FD479)',dec:['🌼','🌷','🌱']},
- {id:'beach',n:'바닷가',c:20,css:'linear-gradient(#9FDCFF,#D9F3FF 48%,#5BC0EB 48%,#7FD1F0 62%,#F7E3B0 62%,#EBCF8F)',dec:['🐚','⭐','🦀']},
- {id:'snow',n:'눈 마을',c:20,css:'linear-gradient(#C9D8F0,#EEF3FB 58%,#FFFFFF 58%,#E3ECF7)',dec:['⛄','❄️','🌲']},
- {id:'candy',n:'사탕 나라',c:30,css:'linear-gradient(#FFD6E8,#FFF0F6 58%,#FFB8D2 58%,#FF9CC2)',dec:['🍭','🍬','🧁']},
- {id:'night',n:'별밤',c:30,need:1,css:'linear-gradient(#1F2A5C,#3B4A8C 58%,#2E5A3A 58%,#23452C)',dec:['✨','🌙','🍄']},
- {id:'space',n:'우주',c:50,need:3,css:'radial-gradient(circle at 80% 20%,#6B4FB0 0 8%,transparent 9%),linear-gradient(#0E1030,#2B1F5C 70%,#4A3A8C)',dec:['🪐','🚀','⭐']},
+ {id:'beach',n:'바닷가',c:160,css:'linear-gradient(#9FDCFF,#D9F3FF 48%,#5BC0EB 48%,#7FD1F0 62%,#F7E3B0 62%,#EBCF8F)',dec:['🐚','⭐','🦀']},
+ {id:'snow',n:'눈 마을',c:160,css:'linear-gradient(#C9D8F0,#EEF3FB 58%,#FFFFFF 58%,#E3ECF7)',dec:['⛄','❄️','🌲']},
+ {id:'candy',n:'사탕 나라',c:240,css:'linear-gradient(#FFD6E8,#FFF0F6 58%,#FFB8D2 58%,#FF9CC2)',dec:['🍭','🍬','🧁']},
+ {id:'night',n:'별밤',c:240,need:1,css:'linear-gradient(#1F2A5C,#3B4A8C 58%,#2E5A3A 58%,#23452C)',dec:['✨','🌙','🍄']},
+ {id:'space',n:'우주',c:400,need:3,css:'radial-gradient(circle at 80% 20%,#6B4FB0 0 8%,transparent 9%),linear-gradient(#0E1030,#2B1F5C 70%,#4A3A8C)',dec:['🪐','🚀','⭐']},
 ];
-const POTLIST=[{id:'',n:'기본 화분',c:0},{id:'sky',n:'하늘 화분',c:12},{id:'sun',n:'노랑 화분',c:12},{id:'dot',n:'물방울 화분',c:20,need:1},{id:'rainbow',n:'무지개 화분',c:40,need:2}];
+const POTLIST=[{id:'',n:'기본 화분',c:0},{id:'sky',n:'하늘 화분',c:96},{id:'sun',n:'노랑 화분',c:96},{id:'dot',n:'물방울 화분',c:160,need:1},{id:'rainbow',n:'무지개 화분',c:320,need:2}];
 const CAT=k=>k==='friend'?FRIENDS:k==='bg'?BGS:k==='pot'?POTLIST:WEAR[k];
 /* 예전 저장(acc 하나, deco) 옮기기 */
 (g=>{g.wear=Object.assign({head:'',face:'',neck:'',hand:'',back:'',body:''},g.wear||{});g.friends=g.friends||[];g.bg=g.bg||'';
