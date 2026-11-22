@@ -182,7 +182,7 @@ K.views.village=a=>{
     <div class="vdeco" aria-hidden="true"><span style="left:4%;top:31%">🌳</span><span style="right:3%;top:33%">🌲</span><span style="left:46%;top:36%;font-size:18px">🌷</span><span style="left:20%;bottom:2%;font-size:18px">🌼</span><span style="right:22%;bottom:1%;font-size:18px">🌸</span><span class="vbf" style="left:30%;top:24%;font-size:20px">🦋</span></div></div>
    ${K.buddyRow()}
    <button class="btn ghost" id="pg">👪 부모님 가이드</button></div>`;
-  K.say(`안녕! 나는 콩이야. ${K.BRAND}에 온 걸 환영해! 오늘은 어느 집에 놀러 갈까?`);
+  K.say(K.hello?K.hello():`안녕! 나는 콩이야. 오늘은 어느 집에 놀러 갈까?`);
   $$('.house').forEach(b=>b.onclick=()=>{const s=K.subjects[+b.dataset.i];if(s.soon){K.sfx.soft();K.say(`${s.name} 집은 지금 짓고 있어! 곧 열려요.`);return}
     if(s.href){location.href=s.href;return}K.sfx.pick();K.go('subject',{subj:s})});
   $('#pg').onclick=()=>K.go('guide',{guideFrom:'village'});
@@ -260,10 +260,10 @@ function makeG(p){
       if(r.ok)return G.success(r.line||'맞았어!');
       P.wrong++;P.picks.push(r.note||Object.values(vals).map(K.pickText).join(', '));K.sfx.soft();
       const box=r.mark||G.board;box.classList.remove('shake');void box.offsetWidth;box.classList.add('shake');
-      K.say((r.why?r.why+' ':'')+ENC[(P.wrong-1)%ENC.length])},
+      K.ctx.streak=0;K.say((r.why?r.why+' ':'')+(K.talk?K.talk(P.wrong===1?'wrong1':P.wrong===2?'wrong2':'wrong3'):ENC[(P.wrong-1)%ENC.length]))},
     result(){if(P.practice)return 'practice';if(P.wrong===0)return P.usedHint?'hint':'solo';return P.usedHint?'hintretry':'retry'},
     stars(){const r=G.result();return r==='solo'||r==='practice'?3:(r==='hint'||(r==='retry'&&P.wrong===1))?2:1},
-    success(line){if(P.done)return;P.done=true;K.logProb&&K.logProb(P,true,line,G.result());G.hl(null);K.sfx.good();K.confetti(50);const st=G.stars();K.ctx.score.push(st);K.onSolved&&K.onSolved(st);K.later(()=>K.say(line),250);G.trayOff(true);
+    success(line){if(P.done)return;P.done=true;K.logProb&&K.logProb(P,true,line,G.result());G.hl(null);K.sfx.good();K.confetti(50);const st=G.stars();K.ctx.score.push(st);K.onSolved&&K.onSolved(st);const res=G.result();K.ctx.streak=res==='solo'?(K.ctx.streak||0)+1:0;const said=K.okLine&&!P.practice?K.okLine(line,res,K.ctx.streak):line;K.later(()=>K.say(said),250);G.trayOff(true);
       const last=K.ctx.pi>=K.ctx.probs.length-1;
       const next=()=>G.actions([[last?'결과 보기 🎉':'다음 문제 ▶','green pulse',()=>{if(last)K.go('result');else K.go('play',{pi:K.ctx.pi+1})}]]);
       /* 영어·위인 이름 등은 맞힌 뒤 꼭 소리 내어 따라 말하기 */
@@ -293,7 +293,7 @@ K.views.result=a=>{const sc=K.ctx.score,l=K.ctx.level,ar=l.area;const pend=K.ctx
    ${nx?`<button class="btn big green" id="nx">다음: ${nx.name} ▶</button>`:''}
    <button class="btn ghost big" id="again">다시 하기</button><button class="btn ghost big" id="mp">다른 놀이 고르기</button><div style="flex:1"></div></div>`;
   if(avg){K.confetti(80);K.sfx.good()}
-  if(pend)K.say(`${l.name} 끝까지 썼어! ${avg?'':''}부모님이 글씨를 확인하면 ${avg?'남은 ':''}별과 콩알을 받을 수 있어.`);else K.say(avg===3?`${l.name} 완벽해! 혼자서 생각하는 힘이 쑥쑥 자랐어!`:avg===2?`${l.name} 끝! 힌트를 잘 써서 해냈어. 대단해!`:`${l.name} 끝까지 해냈어! 다시 하면 더 쉬워질 거야.`);
+  if(pend)K.say(`${l.name} 끝까지 썼어! ${avg?'':''}부모님이 글씨를 확인하면 ${avg?'남은 ':''}별과 콩알을 받을 수 있어.`);else K.say(K.talk?K.talk(avg===3?'end3':avg===2?'end2':'end1',{n:l.name}):`${l.name} 끝!`);
   nx&&($('#nx').onclick=()=>nx.free?K.go('free',{level:nx}):K.play(nx));
   $('#again').onclick=()=>K.play(l);$('#mp').onclick=()=>K.go('subject');
 };

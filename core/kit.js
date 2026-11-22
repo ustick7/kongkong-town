@@ -151,7 +151,7 @@ function write(p,G){
       ${bad.length?`<div style="font-size:16px"><b>${bad.join(', ')}</b>${K.josa(bad[bad.length-1],'이')} 달라. 정답을 잘 보고 다시 써 볼까?</div>
       <div class="selfcheck"><button class="btn blue" id="again2">✏️ 다시 쓰기</button><button class="btn ghost" id="pok2" style="font-size:15px">👪 부모님: 맞게 썼어요</button></div>`:''}</div>`;
     if(!bad.length){K.later(()=>G.success(p.line||`잘했어! ${p.word}, 맞춤법 대장!`),600);return}
-    K.sfx.soft();K.say(`아까워! ${bad.join(', ')}${K.josa(bad[bad.length-1],'이')} 정답이랑 달라. 다시 써 보자!`);
+    K.sfx.soft();K.say(K.talk('wbad',{b:bad.join(', '),j:K.josa(bad[bad.length-1],'이')}));
     $('#again2').onclick=()=>retryWrite(bad);
     $('#pok2').onclick=()=>K.parentCheck(()=>{G.P.self='parent';G.P.ocrFix=1;G.success(p.line||`잘했어! ${p.word}!`)})}
   function retryWrite(bad){G.P.wrong++;G.P.picks.push(bad.length?`다르게 쓴 글자: ${bad.join(', ')}`:'정답과 다르게 씀');G.P.img0=G.P.img0||G.P.img;
@@ -196,14 +196,14 @@ K.speakPanel=(sp,G,done)=>{const acts=K.$('#acts');if(!acts){done();return}const
     <div class="row" style="align-items:center"><button class="listen" id="sl" style="width:64px;height:64px;font-size:28px" aria-label="듣기">🔊</button>${SR?'<button class="mic" id="mic" aria-label="말하기">🎤</button>':''}</div>
     <div class="heard" id="hd">${SR?'🎤를 누르고 크게 말해 봐':'잘 듣고 크게 따라 말해 봐'}</div><div class="row" id="sr2">${SR?'':'<button class="btn green" id="said" disabled>🗣️ 크게 따라 말했어요</button>'}</div></div>`;
   const play=()=>K.speakLang(sp.text,lang,.8);K.$('#sl').onclick=play;K.later(play,300);
-  if(!SR){K.later(()=>{const b=K.$('#said');if(b)b.disabled=false},2200);K.$('#said').onclick=()=>finish('self');K.say('잘 듣고 크게 따라 말해 봐!');return}
+  if(!SR){K.later(()=>{const b=K.$('#said');if(b)b.disabled=false},2200);K.$('#said').onclick=()=>finish('self');K.say(K.talk('sayask'));return}
   K.say('잘 듣고 🎤를 누른 다음 크게 따라 말해 봐!');
   const giveUp=()=>{K.$('#sr2').innerHTML='<button class="btn green" id="pok">👍 잘 말했어요 (부모님 확인)</button><button class="btn ghost" id="psk">다음에 할게요</button>';
     K.$('#pok').onclick=()=>finish('parent');K.$('#psk').onclick=()=>finish('skip')};
   K.$('#mic').onclick=()=>{if(busy)return;busy=true;let r;try{r=new SR()}catch(e){giveUp();return}r.lang=lang;r.interimResults=false;r.maxAlternatives=5;
     const mic=K.$('#mic');mic.classList.add('on');K.$('#hd').textContent='듣고 있어요… 말해 봐!';let got=false;
     r.onresult=e=>{got=true;const alts=[...e.results[0]].map(x=>x.transcript);mic.classList.remove('on');busy=false;
-      if(heardOk(alts,sp.text)){K.sfx.good();K.$('#hd').innerHTML=`<b style="color:var(--green-d)">완벽해! 또박또박 잘 말했어!</b>`;K.say('완벽해! 잘 말했어!');K.later(()=>finish(tries?'ok2':'ok'),900)}
+      if(heardOk(alts,sp.text)){K.sfx.good();K.$('#hd').innerHTML=`<b style="color:var(--green-d)">완벽해! 또박또박 잘 말했어!</b>`;K.say(K.talk('sayok'));K.later(()=>finish(tries?'ok2':'ok'),900)}
       else{tries++;K.sfx.soft();K.$('#hd').textContent=`'${alts[0]}'(으)로 들렸어. 한 번 더 들어 보고 말해 봐!`;play();if(tries>=2)giveUp()}};
     r.onerror=e=>{mic.classList.remove('on');busy=false;if(e.error==='not-allowed'||e.error==='service-not-allowed'){K.$('#hd').textContent='마이크를 쓸 수 없어요. 크게 말하고 아래를 눌러요';giveUp()}else{K.$('#hd').textContent='잘 안 들렸어. 다시 🎤를 누르고 말해 봐!';tries++;if(tries>=2)giveUp()}};
     r.onend=()=>{mic.classList.remove('on');busy=false;if(!got&&K.$('#hd')&&K.$('#hd').textContent.startsWith('듣고'))K.$('#hd').textContent='잘 안 들렸어. 다시 🎤를 누르고 말해 봐!'};
