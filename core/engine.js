@@ -86,9 +86,10 @@ const HATS={
     <path d="M38 52 h16 M66 52 h16" stroke="#3D2E28" stroke-width="2"/><circle cx="46" cy="52" r="10" fill="rgba(255,255,255,.25)" stroke="#3D2E28" stroke-width="3"/><circle cx="74" cy="52" r="10" fill="rgba(255,255,255,.25)" stroke="#3D2E28" stroke-width="3"/><path d="M56 52 h8" stroke="#3D2E28" stroke-width="3"/>`,
   grad:`<path d="M30 24 L60 12 L90 24 L60 34Z" fill="#3D2E28"/><path d="M84 26 v14" stroke="#FFC845" stroke-width="3"/><circle cx="84" cy="42" r="3.5" fill="#FFC845"/>`,
 };
-K.buddySvg=(hat)=>{hat=hat||'sprout';return `<svg viewBox="0 -14 120 134" aria-hidden="true">
+/* 콩이 그림. w: 꾸미기(없으면 지금 입은 것). 머리 꾸미기를 하면 과목 모자 대신 그걸 써요 */
+K.buddySvg=(hat,w)=>{const d=K.dress?K.dress(w):{};hat=d.head?'':(hat||'sprout');let svg=`<svg viewBox="0 -14 120 134" aria-hidden="true">
 <ellipse cx="60" cy="116" rx="30" ry="4" fill="rgba(0,0,0,.1)"/>
-${K.wearSvg?K.wearSvg('b'):''}
+${d.b||''}
 <path d="M46 104 q-2 10 -10 10 h12Z M74 104 q2 10 10 10 h-12Z" fill="#6DAE4E"/>
 <path d="M60 18 C88 16 102 40 98 66 C95 90 84 108 60 108 C34 108 22 92 22 66 C22 40 32 20 60 18Z" fill="#9AD27A"/>
 <path d="M60 18 C88 16 102 40 98 66 C96 80 92 90 86 98 C90 84 90 60 78 44 C70 32 60 26 46 22 C50 19 55 18 60 18Z" fill="#86C466"/>
@@ -100,7 +101,9 @@ ${K.wearSvg?K.wearSvg('b'):''}
 <g class="lid"><ellipse cx="46" cy="52" rx="8" ry="8" fill="#9AD27A"/><ellipse cx="74" cy="52" rx="8" ry="8" fill="#9AD27A"/></g>
 <ellipse cx="36" cy="64" rx="6" ry="4" fill="#FF9DB5" opacity=".7"/><ellipse cx="84" cy="64" rx="6" ry="4" fill="#FF9DB5" opacity=".7"/>
 <path d="M52 64 q8 8 16 0" stroke="#3D2E28" stroke-width="3" fill="none" stroke-linecap="round"/>
-${HATS[hat]||''}${K.wearSvg?K.wearSvg('f'):''}</svg>`};
+${HATS[hat]||''}${d.f||''}</svg>`;
+  if(d.pal)svg=svg.replace(/#9AD27A/g,d.pal[0]).replace(/#86C466/g,d.pal[1]).replace(/#C9EBB0/g,d.pal[2]).replace(/#6DAE4E/g,d.pal[3]);return svg};
+
 K.curHat=()=>{const c=K.ctx;if(K.view==='village'||K.view==='guide')return 'sprout';const s=(c.level&&c.level.area.subject)||(c.area&&c.area.subject)||c.subj;return (s&&s.hat)||'sprout'};
 K.buddyRow=()=>`<div class="buddy-row"><div class="buddy">${K.buddySvg(K.curHat())}</div><div class="bubble" id="say" role="status"></div></div>`;
 let lastLine='';
@@ -174,8 +177,9 @@ K.views.village=a=>{
    <div class="brand">${K.BRAND}<small>${K.TAGLINE}</small></div>
    <div class="village"><div class="sun"></div><div class="cloud em">☁️</div>
     <div class="houses">${K.subjects.map((s,i)=>`<button class="house ${s.soon?'soon':''}" data-i="${i}" style="--c:${s.color}">
-      <span class="roof"></span><span class="wall"><span class="em">${s.emoji}</span><span class="door"></span></span>
-      <span class="nm">${s.name}</span><span class="sub">${s.desc||''}</span></button>`).join('')}</div></div>
+      ${K.HOUSE&&K.HOUSE(s.id)||`<span class="roof"></span><span class="wall"><span class="em">${s.emoji}</span><span class="door"></span></span>`}
+      ${K.HOUSE&&K.HOUSE(s.id)?`<span class="nm2">${s.emoji} ${s.name}</span>`:`<span class="nm">${s.name}</span>`}<span class="sub">${s.desc||''}</span></button>`).join('')}</div>
+    <div class="vdeco" aria-hidden="true"><span style="left:4%;top:31%">🌳</span><span style="right:3%;top:33%">🌲</span><span style="left:46%;top:36%;font-size:18px">🌷</span><span style="left:20%;bottom:2%;font-size:18px">🌼</span><span style="right:22%;bottom:1%;font-size:18px">🌸</span><span class="vbf" style="left:30%;top:24%;font-size:20px">🦋</span></div></div>
    ${K.buddyRow()}
    <button class="btn ghost" id="pg">👪 부모님 가이드</button></div>`;
   K.say(`안녕! 나는 콩이야. ${K.BRAND}에 온 걸 환영해! 오늘은 어느 집에 놀러 갈까?`);

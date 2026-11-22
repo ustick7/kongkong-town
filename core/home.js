@@ -150,7 +150,7 @@ K.views.settings=a=>{const P=S.parent;
     else if(t.id==='pc')K.pinPad('🔒 새 비밀번호','set',pin=>{P.pin=pin;K.save();K.toast('비밀번호를 바꿨어요')});
     else if(t.id==='r1'){$('#rs').innerHTML=RSQ('r2','별점, 콩알, 화분, 리포트 기록, 손글씨 사진을 모두 지워요. 이름·미션·비밀번호는 그대로예요.')}
     else if(t.id==='ra'){$('#rs').innerHTML=RSQ('r4','이름, 미션, 비밀번호까지 모두 지우고 처음 설치한 상태로 돌아가요.')}
-    else if(t.id==='r2'){S.stars={};S.beans=0;S.plant={water:0};S.garden={kind:0,done:[],own:[],acc:'',pot:'',deco:[],goal:{day:'',got:false},pets:0};S.log=[];S.days={};if(S.play){S.play.used=0;S.play.bonus=0}K.save();K.toast('학습 기록을 지웠어요');$('#rs').innerHTML=RS0}
+    else if(t.id==='r2'){S.stars={};S.beans=0;S.plant={water:0};S.garden={kind:0,done:[],own:[],pot:'',bg:'',friends:[],wear:{head:'',face:'',neck:'',hand:'',back:'',body:''},goal:{day:'',got:false},pets:0};S.log=[];S.days={};if(S.play){S.play.used=0;S.play.bonus=0}K.save();K.toast('학습 기록을 지웠어요');$('#rs').innerHTML=RS0}
     else if(t.id==='r4'){try{localStorage.removeItem('kongkong-v1')}catch(e){}location.reload()}
     else if(t.id==='r3'){$('#rs').innerHTML=RS0}
     else if(t.id==='ex')exportData();
