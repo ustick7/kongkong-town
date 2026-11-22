@@ -13,7 +13,7 @@ const API='https://generativelanguage.googleapis.com/v1beta/models/';
 
 const P_TEXT=n=>`이 사진은 어린아이가 손으로 쓴 한글 받아쓰기예요. 칸이 ${n}개 있어요.
 아이가 실제로 쓴 글자를 한 글자씩 그대로 옮겨 적어요.
-- 맞춤법이 틀려도 절대 고치지 말고, 보이는 그대로 적어요. (예: '우산'을 '으신'으로 썼으면 '으신')
+- 맞춤법이 틀려도 절대 고치지 말고, 보이는 그대로 적어요.
 - 받침이 없거나 획이 빠졌으면 빠진 그대로 적어요. 비슷한 낱말로 짐작하지 말아요.
 - 알아볼 수 없거나 두 글자 중 헷갈리는 글자는 ? 로 적어요.
 - 빈칸은 ? 로 적어요. 띄어쓰기는 무시하고 글자만 이어서 적어요.
@@ -42,9 +42,16 @@ K.ocrDecide=(a,b,n)=>{const ta=a?clean(a.text):'';const tb=b&&Array.isArray(b.ce
   const why=!a||!b?'read':!ta?'empty':[...ta].length!==n?'len':/\?/.test(ta+tb)?'unclear':ta!==tb?'differ':!(a.sure===true&&b.sure===true)?'unsure':'';
   return {text:ta,alt:tb,sure:!why,why}};
 
-K.isKey=u=>/^AIza[\w-]{20,}$/.test(String(u||'').trim());
+/* 구글 키: 예전 형식 AIza…(39자), 2026년 5월부터 새 형식 AQ.…(53자) */
+K.keyFix=u=>String(u||'').replace(/[\s"'`]/g,'');
+K.isKey=u=>{u=K.keyFix(u);return /^AIza[\w-]{30,}$/.test(u)||/^AQ\.[\w.-]{30,}$/.test(u)};
+/* 키 모양 점검: '' 이면 괜찮음, 아니면 안내 문장 */
+K.keyHint=u=>{u=K.keyFix(u);if(/[…*•]|\.\.\./.test(u))return '키가 가려진(…) 모양이에요. AI Studio에서 키를 눌러 열고 「키 복사(Copy key)」로 전체를 복사해 주세요.';
+  if(/^AQ\./.test(u)&&u.length<50)return `키가 잘린 것 같아요 (${u.length}자, 보통 53자). 「키 복사(Copy key)」로 전체를 다시 복사해 주세요.`;
+  if(/^AIza/.test(u)&&u.length<39)return `키가 잘린 것 같아요 (${u.length}자, 보통 39자). 전체를 다시 복사해 주세요.`;
+  if(!/^(AIza|AQ\.|https:\/\/)/.test(u))return '구글 키는 AQ. 또는 AIza로 시작해요. 다른 걸 복사한 것 같아요.';return ''};
 K.ocrOn=()=>!!(S.ocrKey||S.ocrUrl);
-K.setOcr=u=>{u=String(u||'').trim();if(K.isKey(u)){S.ocrKey=u;S.ocrUrl=''}else{S.ocrUrl=u;S.ocrKey=''}K.save()};
+K.setOcr=u=>{u=/^https:/.test(String(u||'').trim())?String(u).trim():K.keyFix(u);if(K.isKey(u)){S.ocrKey=u;S.ocrUrl=''}else{S.ocrUrl=u;S.ocrKey=''}K.save()};
 const count=()=>{const d=new Date().toISOString().slice(0,10);if(!S.ocrN||S.ocrN.d!==d)S.ocrN={d,n:0};return S.ocrN};
 
 const timeout=(ms,ac)=>setTimeout(()=>ac.abort(),ms);
@@ -75,10 +82,10 @@ K.ocrRead=async(img,n)=>{const ac=new AbortController();const to=timeout(25000,a
 
 /* 설정의 '연결 확인': true 또는 안내 문장 */
 K.ocrCheck=async u=>{
-  if(K.isKey(u)){const r=await fetch(API.replace(/models\/$/,'models')+'?pageSize=50',{headers:{'x-goog-api-key':u}});
+  if(K.isKey(u)){u=K.keyFix(u);const r=await fetch(API.replace(/models\/$/,'models')+'?pageSize=50',{headers:{'x-goog-api-key':u}});
     if(r.ok){const j=await r.json().catch(()=>({}));const names=(j.models||[]).map(x=>x.name||'');return names.length&&!names.some(x=>/gemini-[\d.]+-flash/.test(x))?'키는 맞지만 글씨를 읽을 Flash 모델이 안 보여요. 잠시 뒤 다시 확인해 주세요.':true}
-    if(r.status===400||r.status===401||r.status===403)return '키가 맞지 않아요. AIza로 시작하는 키를 처음부터 끝까지 다시 복사해 주세요.';
-    if(r.status===429)return '오늘 무료 사용량을 다 썼어요. 내일 다시 확인해 주세요.';return '구글 서버가 답하지 않아요 ('+r.status+'). 잠시 뒤 다시 해 주세요.'}
+    if(r.status===400||r.status===401||r.status===403)return '키가 맞지 않아요. AI Studio에서 키를 눌러 열고 「키 복사(Copy key)」로 처음부터 끝까지 다시 복사해 주세요.';
+    if(r.status===429)return '오늘 무료 사용량을 다 썼어요. 내일 다시 확인해 주세요.';return '구글 서버가 답하지 않아요 (오류 '+r.status+'). 잠시 뒤 다시 해 주세요.'}
   const r=await fetch(u);const j=await r.json().catch(()=>null);
   if(j&&j.ok&&j.key===false)return '서버는 찾았지만 GEMINI_KEY가 없어요. 안내서를 확인해 주세요.';
   if(j&&j.ok)return true;return '주소는 열렸지만 채점 서버가 아니에요. 주소를 다시 확인해 주세요.'};

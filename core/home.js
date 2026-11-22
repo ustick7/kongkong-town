@@ -124,8 +124,8 @@ K.views.settings=a=>{const P=S.parent;
   <h2 style="margin-top:12px">⏰ 하루 놀이 시간</h2><div class="set-row" id="lim"></div><p class="muted" id="used"></p>
   <h2 style="margin-top:12px">🎵 위인 노래 가사 (위콩)</h2><p>집에 있는 위인 노래 가사를 붙여 넣으면 가사 속 이름이 빈칸인 문제가 만들어져요. 가사는 이 기기에만 저장돼요.</p>
   <div class="set-row"><textarea id="lyr" rows="5" style="width:100%;font:inherit;font-size:16px;border-radius:14px;border:2px solid var(--line);padding:10px;background:var(--paper);color:var(--ink)" placeholder="가사를 한 줄씩 붙여 넣어요">${(S.lyrics||'').replace(/</g,'&lt;')}</textarea></div><p class="muted" id="lyc"></p>
-  <h2 style="margin-top:12px">✍️ 손글씨 자동 채점</h2><p>구글 <b>Gemini 키</b>(AIza…로 시작)를 붙여 넣고 <b>연결 확인</b>을 누르면 끝이에요. 콩이가 받아쓰기 글씨를 직접 읽고 글자마다 채점해요. 키는 이 폰에만 저장되고 기록 내보내기에도 들어가지 않아요. 비워 두면 아이가 정답과 스스로 비교해요. 키 받는 법은 <a href="https://github.com/ustick7/kongkong-town/blob/main/worker/README.md" target="_blank" rel="noopener">안내서</a>에 있어요.</p>
-  <div class="set-row"><input type="text" autocapitalize="off" autocomplete="off" spellcheck="false" id="ocr" placeholder="AIza… (또는 채점 서버 주소)" value="${(S.ocrKey||S.ocrUrl||'').replace(/"/g,'&quot;')}" style="flex:1;min-width:0;-webkit-text-security:${S.ocrKey?'disc':'none'}"><button class="btn ghost" id="ocrt">연결 확인</button></div><p class="muted" id="ocrm"></p>
+  <h2 style="margin-top:12px">✍️ 손글씨 자동 채점</h2><p>구글 <b>Gemini 키</b>(AQ. 또는 AIza로 시작)를 붙여 넣고 <b>연결 확인</b>을 누르면 끝이에요. 콩이가 받아쓰기 글씨를 직접 읽고 글자마다 채점해요. 키는 이 폰에만 저장되고 기록 내보내기에도 들어가지 않아요. 비워 두면 아이가 정답과 스스로 비교해요. 키 받는 법은 <a href="https://github.com/ustick7/kongkong-town/blob/main/worker/README.md" target="_blank" rel="noopener">안내서</a>에 있어요.</p>
+  <div class="set-row"><input type="text" autocapitalize="off" autocomplete="off" spellcheck="false" id="ocr" placeholder="AQ.… 또는 AIza… 키를 붙여 넣어요" value="${(S.ocrKey||S.ocrUrl||'').replace(/"/g,'&quot;')}" style="flex:1;min-width:0;-webkit-text-security:${S.ocrKey?'disc':'none'}"><button class="btn ghost" id="ocrt">연결 확인</button></div><p class="muted" id="ocrm"></p>
   <h2 style="margin-top:12px">🌙 밤 화면 (눈 보호)</h2><p>밤 화면은 어두운 색이라 저녁에 눈이 덜 부셔요. 자동이면 폰이 다크 모드이거나 정한 시각부터 아침 7시까지 밤 화면이 돼요.</p>
   <div class="set-row" id="thm"></div><div class="set-row" id="nf"></div>
   <h2 style="margin-top:12px">🔒 비밀번호</h2><div class="set-row"><button class="btn ghost" id="pc">비밀번호 바꾸기</button></div>
@@ -155,9 +155,13 @@ K.views.settings=a=>{const P=S.parent;
     else if(t.id==='r3'){$('#rs').innerHTML=RS0}
     else if(t.id==='ex')exportData();
     else if(t.id==='im')$('#imf').click();
-    else if(t.id==='ocrt'){const u=$('#ocr').value.trim();const m=$('#ocrm');if(!u){K.setOcr('');m.textContent='비워 두면 아이가 스스로 비교해요';return}
-      if(!K.isKey(u)&&!/^https:\/\//.test(u)){m.textContent='AIza로 시작하는 키나 https:// 주소를 넣어 주세요';return}m.textContent='확인하는 중…';
-      K.ocrCheck(u).then(r=>{if(r===true){K.setOcr(u);m.innerHTML='<b style="color:var(--green-d)">✅ 연결됐어요! 이제 콩이가 글씨를 읽어요.</b>'}else m.textContent=r}).catch(()=>{m.textContent='연결이 안 돼요. 인터넷을 확인해 주세요.'});return}
+    else if(t.id==='ocrt'){const u=$('#ocr').value.trim();const m=$('#ocrm');const say=(h,c)=>{m.innerHTML=`<span style="display:block;padding:10px 12px;border-radius:12px;background:var(--s-${c||'yellow'});color:var(--ink);font-size:15px">${h}</span>`;m.scrollIntoView({block:'nearest',behavior:'smooth'})};
+      if(!u){K.setOcr('');say('칸이 비어 있어요. 비워 두면 아이가 스스로 비교해요.');return}
+      const hint=/^https:\/\//.test(u)?'':K.keyHint(u);if(hint){say('⚠️ '+hint,'orange');K.sfx.soft();return}
+      t.disabled=true;const lb=t.textContent;t.textContent='확인 중…';say('🔎 구글에 연결해 보는 중이에요…','blue');
+      K.ocrCheck(u).then(r=>{if(r===true){K.setOcr(u);say('✅ <b>연결됐어요!</b> 이제 콩이가 받아쓰기 글씨를 읽어요.','green');K.sfx.good()}else{say('⚠️ '+r,'orange');K.sfx.soft()}})
+        .catch(()=>say('⚠️ 구글에 연결이 안 돼요. 인터넷을 확인하고 다시 눌러 주세요. 계속 안 되면 이 화면을 캡처해서 보내 주세요.','orange'))
+        .finally(()=>{t.disabled=false;t.textContent=lb});return}
     else if(t.id==='sv'){if(gate&&!ms.length){K.toast('미션을 하나 이상 넣어 주세요');return}Object.assign(P,{missions:ms,limit:lim,gate,name:$('#nm').value.trim()});S.lyrics=$('#lyr').value.slice(0,6000);K.setOcr($('#ocr').value.trim());K.save();K.toast('저장했어요');K.go('village')}});
 };
 
