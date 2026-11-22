@@ -81,17 +81,19 @@ const count=()=>{const d=new Date().toISOString().slice(0,10);if(!S.ocrN||S.ocrN
 
 const timeout=(ms,ac)=>setTimeout(()=>ac.abort(),ms);
 /* 이 키로 쓸 수 있는 모델을 구글에 물어서 고르고 하루 동안 기억해요 (없는 모델을 부르느라 느려지지 않게) */
-const FALLBACK=['gemini-2.5-flash','gemini-3-flash-preview','gemini-3.1-flash-lite','gemini-2.5-flash-lite'];
+const FALLBACK=['gemini-3.1-flash-lite','gemini-2.5-flash-lite','gemini-2.5-flash','gemini-3-flash-preview'];
 const verOf=n=>{const m=/^gemini-(\d+(?:\.\d+)?)-flash/.exec(n);return m?+m[1]:0};
+/* 무료 키로 쓸 모델 고르기: 가장 새 모델은 무료 한도가 없거나(0) 붐비는 일이 많아서,
+   가볍고 빠른 flash-lite를 먼저, 그다음 flash. 같은 종류면 새 버전 먼저. 실제로 되는지는 써 보면서 배워요 */
 K.ocrRank=names=>{const ok=names.filter(n=>/^gemini-\d+(\.\d+)?-flash(-lite)?(-preview)?(-\d\d-\d\d\d?\d?)?$/.test(n));
-  const score=n=>verOf(n)*10+(/-lite/.test(n)?0:5)+(/preview|-\d\d-\d\d/.test(n)?0:2);
-  return ok.sort((x,y)=>score(y)-score(x)).slice(0,3)};
+  const score=n=>(/-lite/.test(n)?100:0)+verOf(n)*10+(/preview|-\d\d-\d\d/.test(n)?0:2);
+  return ok.sort((x,y)=>score(y)-score(x)).slice(0,8)};
 let modelsP=null;
-const models=key=>{const c=S.ocrModels;if(c&&c.k===key.slice(-6)&&c.t>Date.now()-864e5&&c.list.length)return Promise.resolve(c.list);
+const models=key=>{const c=S.ocrModels;if(c&&c.v===2&&c.k===key.slice(-6)&&c.t>Date.now()-864e5&&c.list.length)return Promise.resolve(c.list);
   if(modelsP)return modelsP;
   const ac=new AbortController();setTimeout(()=>ac.abort(),8000);modelsP=fetch(API.replace(/\/$/,'')+'?pageSize=200',{headers:{'x-goog-api-key':key},signal:ac.signal}).then(r=>r.ok?r.json():null).then(j=>{
     const names=((j&&j.models)||[]).filter(m=>!m.supportedGenerationMethods||m.supportedGenerationMethods.includes('generateContent')).map(m=>String(m.name||'').replace(/^models\//,''));
-    const list=K.ocrRank(names);if(list.length){S.ocrModels={k:key.slice(-6),t:Date.now(),list};K.save();return list}return FALLBACK}).catch(()=>FALLBACK).finally(()=>{modelsP=null});
+    const list=K.ocrRank(names);if(list.length){S.ocrModels={v:2,k:key.slice(-6),t:Date.now(),list};K.save();return list}return FALLBACK}).catch(()=>FALLBACK).finally(()=>{modelsP=null});
   return modelsP};
 /* 생각(추론)을 최소로: 3세대부터는 thinkingLevel, 2.5는 thinkingBudget. 생각도 출력 길이에 들어가서 넉넉히 둬요 */
 /* 모델이 'minimal'을 모르면 'low', 그것도 모르면 설정 없이 */
@@ -99,9 +101,13 @@ const thinkList=m=>verOf(m)>=3?[{thinkingLevel:'minimal'},{thinkingLevel:'low'},
 const LOG=[];K.ocrLog=LOG;const log=e=>{LOG.unshift(Object.assign({t:Date.now()},e));LOG.length=Math.min(LOG.length,16)};
 /* 한 모델에 너무 오래 매달리지 않아요: 한 번 묻는 데 최대 14초, 넘으면 다음 모델로 */
 const PER=14000;
-/* 최근에 잘 됐던 모델을 먼저, 최근에 느렸던 모델은 뒤로 */
-const order=list=>{const g=S.ocrGood||{},slow=S.ocrSlow||{},now=Date.now();
-  return list.slice().sort((x,y)=>((slow[x]||0)>now-36e5)-((slow[y]||0)>now-36e5)||(g[y]||0)-(g[x]||0))};
+/* 안 되는 모델은 한동안 건너뛰어요: 무료 한도 없음/다 씀 6시간, 1분 한도 1분, 붐빔 10분, 느림 30분, 없음 하루 */
+const skip=(m,ms)=>{S.ocrSkip=Object.assign({},S.ocrSkip,{[m]:Date.now()+ms})};
+const order=list=>{const g=S.ocrGood||{},sk=S.ocrSkip||{},now=Date.now();
+  const live=list.filter(m=>!(sk[m]>now));const use=live.length?live:list.slice().sort((x,y)=>(sk[x]||0)-(sk[y]||0)).slice(0,1);
+  /* 최근에 잘 된 모델이 있으면 그걸 먼저 */
+  return use.map((m,i)=>[m,i]).sort((a,b)=>((g[b[0]]||0)>now-6*36e5)-((g[a[0]]||0)>now-6*36e5)||a[1]-b[1]).map(x=>x[0])};
+const why429=msg=>/per.?minute|PerMinute|RPM/i.test(msg)?6e4:6*36e5;
 async function gemini(key,prompt,mime,data,signal){let last=0;const list=order(await models(key));
   for(const model of list){for(const tc of thinkList(model)){const think=!!tc;if(signal.aborted)throw new Error('시간 초과');
     /* 3세대 모델은 temperature를 낮추면 같은 말을 되풀이하며 멈추지 않을 수 있어서 기본값(1.0)을 그대로 둬요 */
@@ -113,13 +119,13 @@ async function gemini(key,prompt,mime,data,signal){let last=0;const list=order(a
       if(r.ok){const j=await r.json();const c=(j.candidates||[])[0]||{};const raw=(c.content||{}).parts;const out=parse((raw||[]).filter(p=>!p.thought).map(p=>p.text||'').join(''));
         log({model,ms:Date.now()-t1,st:200,fin:c.finishReason||'',ok:!!out});
         if(out){S.ocrGood=Object.assign({},S.ocrGood,{[model]:Date.now()});return Object.assign(out,{_m:model})}last='빈 답 '+(c.finishReason||'');break}
-      let msg='';try{const e=await r.json();msg=((e&&e.error&&e.error.message)||'').replace(/[<>&"]/g,'').slice(0,80)}catch(e){}
+      let msg='',full='';try{const e=await r.json();full=JSON.stringify(e||{});msg=((e&&e.error&&e.error.message)||'').replace(/[<>&"]/g,'').slice(0,60)}catch(e){}
+      if(r.status===429)skip(model,why429(full));else if(r.status===503||r.status===500)skip(model,10*6e4);else if(r.status===404||r.status===403)skip(model,864e5);
       log({model,ms:Date.now()-t1,st:r.status,msg})}
     catch(e){const outer=signal.aborted;log({model,ms:Date.now()-t1,st:outer?'시간 초과':'느림'});
-      if(outer)throw new Error('시간 초과');S.ocrSlow=Object.assign({},S.ocrSlow,{[model]:Date.now()});last='느림';break}
+      if(outer)throw new Error('시간 초과');skip(model,30*6e4);last='느림';break}
     finally{clearTimeout(tm);signal.removeEventListener('abort',kill)}
     if(r.status===400&&think)continue; /* 생각 설정을 모르는 모델이면 다르게 한 번 더 */
-    if(r.status===404&&S.ocrModels)S.ocrModels.t=0; /* 목록이 낡았으면 다음엔 다시 물어봐요 */
     break}
     if(typeof last==='number'&&![400,403,404,429,500,503].includes(last))break; /* 키가 틀린 것(401 등)이면 다른 모델도 소용없어요 */}
   throw new Error('gemini '+last)}
