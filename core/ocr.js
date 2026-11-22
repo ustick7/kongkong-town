@@ -61,10 +61,10 @@ const clean=t=>String(t||'').replace(/\s/g,'').slice(0,40);
 /* 두 번 읽은 결과로 확실한지 정해요 */
 K.ocrDecideEn=(a,b,n,cs)=>{const ta=a?clean(a.text):'';const tb=b&&Array.isArray(b.cells)?b.cells.map(x=>String(x||'?').trim().slice(0,1)||'?').join(''):'';
   const eq=(x,y)=>cs?x===y:x.toLowerCase()===y.toLowerCase();
-  const why=!a||!b?'read':!ta?'empty':ta.length!==n?'len':/\?/.test(ta+tb)||/[^A-Za-z]/.test(ta)?'unclear':!eq(ta,tb)?'differ':!(a.sure===true&&b.sure===true)?'unsure':'';
+  const why=!a||!b?'read':!ta?'empty':ta.length!==n?'len':/\?/.test(ta+tb)||/[^A-Za-z]/.test(ta)?'unclear':!eq(ta,tb)?'differ':!(a.sure===true||b.sure===true)?'unsure':'';
   return {text:ta,alt:tb,sure:!why,why}};
 K.ocrDecide=(a,b,n)=>{const ta=a?clean(a.text):'';const tb=b&&Array.isArray(b.cells)?b.cells.map(compose).join(''):'';
-  const why=!a||!b?'read':!ta?'empty':[...ta].length!==n?'len':/\?/.test(ta+tb)?'unclear':ta!==tb?'differ':!(a.sure===true&&b.sure===true)?'unsure':'';
+  const why=!a||!b?'read':!ta?'empty':[...ta].length!==n?'len':/\?/.test(ta+tb)?'unclear':ta!==tb?'differ':!(a.sure===true||b.sure===true)?'unsure':'';
   return {text:ta,alt:tb,sure:!why,why}};
 
 /* 구글 키: 예전 형식 AIza…(39자), 2026년 5월부터 새 형식 AQ.…(53자) */
@@ -80,31 +80,61 @@ K.setOcr=u=>{u=/^https:/.test(String(u||'').trim())?String(u).trim():K.keyFix(u)
 const count=()=>{const d=new Date().toISOString().slice(0,10);if(!S.ocrN||S.ocrN.d!==d)S.ocrN={d,n:0};return S.ocrN};
 
 const timeout=(ms,ac)=>setTimeout(()=>ac.abort(),ms);
-async function gemini(key,prompt,mime,data,signal){let last=0;
-  for(const model of MODELS){for(const think of [true,false]){
+/* 이 키로 쓸 수 있는 모델을 구글에 물어서 고르고 하루 동안 기억해요 (없는 모델을 부르느라 느려지지 않게) */
+const FALLBACK=['gemini-2.5-flash','gemini-3-flash-preview','gemini-3.1-flash-lite','gemini-2.5-flash-lite'];
+const verOf=n=>{const m=/^gemini-(\d+(?:\.\d+)?)-flash/.exec(n);return m?+m[1]:0};
+K.ocrRank=names=>{const ok=names.filter(n=>/^gemini-\d+(\.\d+)?-flash(-lite)?(-preview)?(-\d\d-\d\d\d?\d?)?$/.test(n));
+  const score=n=>verOf(n)*10+(/-lite/.test(n)?0:5)+(/preview|-\d\d-\d\d/.test(n)?0:2);
+  return ok.sort((x,y)=>score(y)-score(x)).slice(0,3)};
+let modelsP=null;
+const models=key=>{const c=S.ocrModels;if(c&&c.k===key.slice(-6)&&c.t>Date.now()-864e5&&c.list.length)return Promise.resolve(c.list);
+  if(modelsP)return modelsP;
+  modelsP=fetch(API.replace(/\/$/,'')+'?pageSize=200',{headers:{'x-goog-api-key':key}}).then(r=>r.ok?r.json():null).then(j=>{
+    const names=((j&&j.models)||[]).filter(m=>!m.supportedGenerationMethods||m.supportedGenerationMethods.includes('generateContent')).map(m=>String(m.name||'').replace(/^models\//,''));
+    const list=K.ocrRank(names);if(list.length){S.ocrModels={k:key.slice(-6),t:Date.now(),list};K.save();return list}return FALLBACK}).catch(()=>FALLBACK).finally(()=>{modelsP=null});
+  return modelsP};
+/* 생각(추론)을 최소로: 3세대부터는 thinkingLevel, 2.5는 thinkingBudget. 생각도 출력 길이에 들어가서 넉넉히 둬요 */
+const thinkCfg=m=>verOf(m)>=3?{thinkingLevel:'minimal'}:/2\.5-flash/.test(m)?{thinkingBudget:0}:null;
+const LOG=[];K.ocrLog=LOG;
+async function gemini(key,prompt,mime,data,signal){let last=0;const list=await models(key);const t0=Date.now();
+  for(const model of list){for(const think of [true,false]){const tc=think?thinkCfg(model):null;if(think&&!tc)continue;
     const body={contents:[{parts:[{text:prompt},{inline_data:{mime_type:mime,data}}]}],
-      generationConfig:Object.assign({temperature:0,responseMimeType:'application/json',maxOutputTokens:600},think?{thinkingConfig:{thinkingBudget:0}}:{})};
+      generationConfig:Object.assign({temperature:0,responseMimeType:'application/json',maxOutputTokens:4096},tc?{thinkingConfig:tc}:{})};
     const r=await fetch(API+model+':generateContent',{method:'POST',headers:{'Content-Type':'application/json','x-goog-api-key':key},body:JSON.stringify(body),signal});
     last=r.status;
-    if(r.ok){const j=await r.json();const raw=(((j.candidates||[])[0]||{}).content||{}).parts;return parse((raw||[]).map(p=>p.text||'').join(''))}
-    if(r.status===400&&think)continue; /* 생각 끄기 설정을 모르는 모델이면 설정 없이 한 번 더 */
+    if(r.ok){const j=await r.json();const c=(j.candidates||[])[0]||{};const raw=(c.content||{}).parts;const out=parse((raw||[]).filter(p=>!p.thought).map(p=>p.text||'').join(''));
+      LOG.unshift({model,ms:Date.now()-t0,st:200,fin:c.finishReason||'',ok:!!out});LOG.length=Math.min(LOG.length,12);
+      if(out)return Object.assign(out,{_m:model});last='empty:'+(c.finishReason||'');break}
+    LOG.unshift({model,ms:Date.now()-t0,st:r.status});LOG.length=Math.min(LOG.length,12);
+    if(r.status===400&&think)continue; /* 생각 설정을 모르는 모델이면 설정 없이 한 번 더 */
+    if(r.status===404&&S.ocrModels)S.ocrModels.t=0; /* 목록이 낡았으면 다음엔 다시 물어봐요 */
     break}
-    if(![400,403,404,429,500,503].includes(last))break; /* 키가 틀린 것(401 등)이면 다른 모델도 소용없어요 */}
+    if(typeof last==='number'&&![400,403,404,429,500,503].includes(last))break; /* 키가 틀린 것(401 등)이면 다른 모델도 소용없어요 */}
   throw new Error('gemini '+last)}
 
 /* 읽기: {text, sure, why} 또는 null(연결 안 됨) */
 K.ocrRead=async(img,n,o={})=>{const en=o.lang==='en';const ac=new AbortController();const to=timeout(25000,ac);
   try{
-    if(S.ocrKey){const c=count();if(c.n+2>DAY_MAX)return null;c.n+=2;K.save();
-      const m=/^data:(image\/(?:jpeg|png));base64,(.+)$/.exec(img||'');if(!m)return null;
-      const [a,b]=await Promise.all([gemini(S.ocrKey,(en?P_TEXT_EN:P_TEXT)(n),m[1],m[2],ac.signal).catch(()=>null),gemini(S.ocrKey,(en?P_LET_EN:P_JAMO)(n),m[1],m[2],ac.signal).catch(()=>null)]);
-      if(!a&&!b)return null;return en?K.ocrDecideEn(a,b,n,!!o.cs):K.ocrDecide(a,b,n)}
+    if(S.ocrKey){const c=count();if(c.n+2>DAY_MAX){K.ocrLast={why:'cap'};return null}c.n+=2;K.save();
+      const m=/^data:(image\/(?:jpeg|png));base64,(.+)$/.exec(img||'');if(!m)return null;const t0=Date.now(),errs=[];const er=e=>{errs.push(ac.signal.aborted?'시간 초과':String(e&&e.message||e));return null};
+      const [a,b]=await Promise.all([gemini(S.ocrKey,(en?P_TEXT_EN:P_TEXT)(n),m[1],m[2],ac.signal).catch(er),gemini(S.ocrKey,(en?P_LET_EN:P_JAMO)(n),m[1],m[2],ac.signal).catch(er)]);
+      const ms=Date.now()-t0;if(!a&&!b){K.ocrLast={why:'net',err:errs.join(', '),ms};return null}
+      const d=en?K.ocrDecideEn(a,b,n,!!o.cs):K.ocrDecide(a,b,n);K.ocrLast=Object.assign({ms,m:(a&&a._m)||(b&&b._m)||'',err:errs.join(', ')},d);return d}
     if(S.ocrUrl&&!en){const r=await fetch(S.ocrUrl,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({image:img,cells:n}),signal:ac.signal});
       if(!r.ok)return null;const j=await r.json();if(!j||typeof j.text!=='string')return null;
       const t=clean(j.text);return {text:t,sure:!!j.sure&&[...t].length===n&&!/\?/.test(t),why:j.why||''}}
     return null}
   catch(e){return null}finally{clearTimeout(to)}};
 
+/* 설정 시험용: 칸 안에 손글씨처럼 그린 글자 사진 */
+K.ocrSample=t=>{const n=[...t].length,c=document.createElement('canvas');c.width=200*n;c.height=260;const x=c.getContext('2d');x.fillStyle='#fff';x.fillRect(0,0,c.width,c.height);
+  x.strokeStyle='#ddd';x.lineWidth=2;for(let i=1;i<n;i++){x.beginPath();x.moveTo(200*i,0);x.lineTo(200*i,260);x.stroke()}
+  x.fillStyle='#3D2E28';x.font='bold 150px "Gaegu","Jua",sans-serif';x.textAlign='center';x.textBaseline='middle';[...t].forEach((ch,i)=>x.fillText(ch,200*i+100,135));
+  return c.toDataURL('image/jpeg',.8)};
+/* 왜 못 읽었는지 부모님께 보여 줄 말 */
+K.ocrWhy=l=>{if(!l)return '';const W={cap:'오늘 사용량을 다 썼어요',net:'구글에 연결하지 못했어요'+(l.err?' ('+l.err+')':''),read:'두 번 중 한 번만 읽혔어요'+(l.err?' ('+l.err+')':''),empty:'빈 칸으로 읽었어요',
+  len:`글자 수가 다르게 읽혔어요 (${l.text||''})`,unclear:`알아보기 어려운 글자가 있어요 (${l.text||''} / ${l.alt||''})`,differ:`두 번 읽은 게 달라요 (${l.text||''} / ${l.alt||''})`,unsure:`두 번 다 자신 없다고 했어요 (${l.text||''})`};
+  return (W[l.why]||l.why||'')+(l.ms?` · ${(l.ms/1000).toFixed(1)}초`:'')};
 /* 말 듣기: {text, alt, sure, clarity, why} 또는 null. 키가 있을 때만 */
 K.hearOn=()=>!!S.ocrKey;
 K.hearRead=async(b64,lang)=>{if(!S.ocrKey)return null;const c=count();if(c.n+2>DAY_MAX)return null;c.n+=2;K.save();
@@ -113,7 +143,7 @@ K.hearRead=async(b64,lang)=>{if(!S.ocrKey)return null;const c=count();if(c.n+2>D
     if(!a&&!b)return null;return K.hearDecide(a,b)}catch(e){return null}finally{clearTimeout(to)}};
 const nw=t=>String(t||'').toLowerCase().replace(/[^a-z0-9가-힣?\s']/g,' ').replace(/\s+/g,' ').trim();
 K.hearDecide=(a,b)=>{const ta=a?nw(a.text):'';const tb=b&&Array.isArray(b.words)?nw(b.words.join(' ')):'';
-  const why=!a||!b?'read':!ta?'empty':/\?/.test(ta+' '+tb)?'unclear':ta.replace(/[\s']/g,'')!==tb.replace(/[\s']/g,'')?'differ':!(a.sure===true&&b.sure===true)?'unsure':'';
+  const why=!a||!b?'read':!ta?'empty':/\?/.test(ta+' '+tb)?'unclear':ta.replace(/[\s']/g,'')!==tb.replace(/[\s']/g,'')?'differ':!(a.sure===true||b.sure===true)?'unsure':'';
   return {text:ta,alt:tb,sure:!why,why,clarity:a&&+a.clarity||0}};
 
 /* 설정의 '연결 확인': true 또는 안내 문장 */

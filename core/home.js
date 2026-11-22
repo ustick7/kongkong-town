@@ -159,7 +159,12 @@ K.views.settings=a=>{const P=S.parent;
       if(!u){K.setOcr('');say('칸이 비어 있어요. 비워 두면 아이가 스스로 비교해요.');return}
       const hint=/^https:\/\//.test(u)?'':K.keyHint(u);if(hint){say('⚠️ '+hint,'orange');K.sfx.soft();return}
       t.disabled=true;const lb=t.textContent;t.textContent='확인 중…';say('🔎 구글에 연결해 보는 중이에요…','blue');
-      K.ocrCheck(u).then(r=>{if(r===true){K.setOcr(u);say('✅ <b>연결됐어요!</b> 이제 콩이가 받아쓰기 글씨를 읽어요.','green');K.sfx.good()}else{say('⚠️ '+r,'orange');K.sfx.soft()}})
+      K.ocrCheck(u).then(async r=>{if(r!==true){say('⚠️ '+r,'orange');K.sfx.soft();return}K.setOcr(u);
+          if(!S.ocrKey){say('✅ <b>연결됐어요!</b> 이제 콩이가 받아쓰기 글씨를 읽어요.','green');K.sfx.good();return}
+          /* 진짜로 한 번 읽어 봐요: 손글씨처럼 그린 '운동장' */
+          say('✅ 키는 맞아요. 🔎 시험 글씨를 읽혀 보는 중… (몇 초 걸려요)','blue');const j=await K.ocrRead(K.ocrSample('운동장'),3);const l=K.ocrLast||{};
+          if(j&&j.sure&&j.text==='운동장'){say(`✅ <b>연결됐어요!</b> 시험 글씨 「운동장」을 ${(l.ms/1000).toFixed(1)}초 만에 정확히 읽었어요.<br><span class="muted" style="font-size:12px">${l.m||''}</span>`,'green');K.sfx.good()}
+          else{say(`⚠️ 키는 맞는데 시험 글씨를 못 읽었어요: ${K.ocrWhy(l)||'답이 없어요'}<br>이 화면을 캡처해서 보내 주세요.`,'orange');K.sfx.soft()}})
         .catch(()=>say('⚠️ 구글에 연결이 안 돼요. 인터넷을 확인하고 다시 눌러 주세요. 계속 안 되면 이 화면을 캡처해서 보내 주세요.','orange'))
         .finally(()=>{t.disabled=false;t.textContent=lb});return}
     else if(t.id==='sv'){if(gate&&!ms.length){K.toast('미션을 하나 이상 넣어 주세요');return}Object.assign(P,{missions:ms,limit:lim,gate,name:$('#nm').value.trim()});S.lyrics=$('#lyr').value.slice(0,6000);K.setOcr($('#ocr').value.trim());K.save();K.toast('저장했어요');K.go('village')}});

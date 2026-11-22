@@ -121,7 +121,7 @@ function write(p,G){
   const size=()=>{const w=pw.clientWidth;const maxC=Math.max(3,Math.floor(w/64));rows=Math.ceil(cells/maxC);cols=Math.ceil(cells/rows);
     const pg=$('#pg');pg.style.gridTemplateColumns=`repeat(${cols},1fr)`;pg.style.gridTemplateRows=`repeat(${rows},1fr)`;
     pg.innerHTML=Array.from({length:cols*rows},(_,i)=>`<i style="${(i+1)%cols===0?'border-right:0;':''}${i>=cols*(rows-1)?'border-bottom:0;':''}${i>=cells?'background:#F6EFE4':''}"></i>`).join('');
-    const h=rows*Math.min(200,Math.max(100,w/cols*1.0));const dpr=window.devicePixelRatio||1;cv.width=w*dpr;cv.height=h*dpr;cv.style.height=h+'px';ctx.setTransform(dpr,0,0,dpr,0,0);redraw()};
+    const h=rows*Math.min(230,Math.max(120,w/cols*1.3));const dpr=window.devicePixelRatio||1;cv.width=w*dpr;cv.height=h*dpr;cv.style.height=h+'px';ctx.setTransform(dpr,0,0,dpr,0,0);redraw()};
   const redraw=()=>{ctx.clearRect(0,0,cv.width,cv.height);ctx.lineCap='round';ctx.lineJoin='round';ctx.strokeStyle='#3D2E28';ctx.lineWidth=Math.max(5,pw.clientWidth/cols/14);
     strokes.forEach(s=>{ctx.beginPath();s.forEach((pt,i)=>i?ctx.lineTo(pt[0],pt[1]):ctx.moveTo(pt[0],pt[1]));if(s.length===1)ctx.lineTo(s[0][0]+.1,s[0][1]);ctx.stroke()})};
   const pos=e=>{const r=cv.getBoundingClientRect();return [e.clientX-r.left,e.clientY-r.top]};
@@ -163,7 +163,7 @@ function write(p,G){
      고쳐 쓰거나, 부모님이 그 자리에서 확인하거나, '확인 기다림'으로 넘어가서 부모님이 리포트에서 확인해요 */
   function showCompare(pre=''){K.$('#acts').innerHTML='';pw.style.pointerEvents='none';$('#undo').disabled=true;$('#clr').disabled=true;G.P.self='wait';
     $('#cmp').innerHTML=`<div class="compare"><div class="muted" style="font-size:15px">정답</div><div class="answord">${p.word}</div>
-      <div style="font-size:16px">내가 쓴 글씨와 <b>한 글자씩</b> 비교해 봐. 다른 글자가 있으면 고쳐 쓰자!</div>
+      ${pre&&K.ocrWhy&&K.ocrLast?`<div class="muted" style="font-size:12px">👪 콩이 기록: ${K.ocrWhy(K.ocrLast)}</div>`:''}<div style="font-size:16px">내가 쓴 글씨와 <b>한 글자씩</b> 비교해 봐. 다른 글자가 있으면 고쳐 쓰자!</div>
       <div class="selfcheck col"><button class="btn blue" id="fix" disabled>✏️ 다른 글자가 있어요, 고쳐 쓸래요</button>
       <button class="btn ghost" id="pchk" disabled>👪 부모님께 확인받기</button>
       <button class="btn ghost" id="later" disabled style="font-size:15px">➡️ 다음으로 (나중에 부모님이 확인해요)</button></div></div>`;
