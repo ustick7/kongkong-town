@@ -94,10 +94,11 @@ const models=key=>{const c=S.ocrModels;if(c&&c.k===key.slice(-6)&&c.t>Date.now()
     const list=K.ocrRank(names);if(list.length){S.ocrModels={k:key.slice(-6),t:Date.now(),list};K.save();return list}return FALLBACK}).catch(()=>FALLBACK).finally(()=>{modelsP=null});
   return modelsP};
 /* 생각(추론)을 최소로: 3세대부터는 thinkingLevel, 2.5는 thinkingBudget. 생각도 출력 길이에 들어가서 넉넉히 둬요 */
-const thinkCfg=m=>verOf(m)>=3?{thinkingLevel:'minimal'}:/2\.5-flash/.test(m)?{thinkingBudget:0}:null;
+/* 모델이 'minimal'을 모르면 'low', 그것도 모르면 설정 없이 */
+const thinkList=m=>verOf(m)>=3?[{thinkingLevel:'minimal'},{thinkingLevel:'low'},null]:/2\.5-flash/.test(m)?[{thinkingBudget:0},null]:[null];
 const LOG=[];K.ocrLog=LOG;
 async function gemini(key,prompt,mime,data,signal){let last=0;const list=await models(key);const t0=Date.now();
-  for(const model of list){for(const think of [true,false]){const tc=think?thinkCfg(model):null;if(think&&!tc)continue;
+  for(const model of list){for(const tc of thinkList(model)){const think=!!tc;
     const body={contents:[{parts:[{text:prompt},{inline_data:{mime_type:mime,data}}]}],
       generationConfig:Object.assign({temperature:0,responseMimeType:'application/json',maxOutputTokens:4096},tc?{thinkingConfig:tc}:{})};
     const r=await fetch(API+model+':generateContent',{method:'POST',headers:{'Content-Type':'application/json','x-goog-api-key':key},body:JSON.stringify(body),signal});
@@ -113,7 +114,7 @@ async function gemini(key,prompt,mime,data,signal){let last=0;const list=await m
   throw new Error('gemini '+last)}
 
 /* 읽기: {text, sure, why} 또는 null(연결 안 됨) */
-K.ocrRead=async(img,n,o={})=>{const en=o.lang==='en';const ac=new AbortController();const to=timeout(25000,ac);
+K.ocrRead=async(img,n,o={})=>{const en=o.lang==='en';const ac=new AbortController();const to=timeout(35000,ac);
   try{
     if(S.ocrKey){const c=count();if(c.n+2>DAY_MAX){K.ocrLast={why:'cap'};return null}c.n+=2;K.save();
       const m=/^data:(image\/(?:jpeg|png));base64,(.+)$/.exec(img||'');if(!m)return null;const t0=Date.now(),errs=[];const er=e=>{errs.push(ac.signal.aborted?'시간 초과':String(e&&e.message||e));return null};
@@ -138,7 +139,7 @@ K.ocrWhy=l=>{if(!l)return '';const W={cap:'오늘 사용량을 다 썼어요',ne
 /* 말 듣기: {text, alt, sure, clarity, why} 또는 null. 키가 있을 때만 */
 K.hearOn=()=>!!S.ocrKey;
 K.hearRead=async(b64,lang)=>{if(!S.ocrKey)return null;const c=count();if(c.n+2>DAY_MAX)return null;c.n+=2;K.save();
-  const ac=new AbortController();const to=timeout(25000,ac);
+  const ac=new AbortController();const to=timeout(35000,ac);
   try{const [a,b]=await Promise.all([gemini(S.ocrKey,P_HEAR(lang),'audio/wav',b64,ac.signal).catch(()=>null),gemini(S.ocrKey,P_HEAR2(lang),'audio/wav',b64,ac.signal).catch(()=>null)]);
     if(!a&&!b)return null;return K.hearDecide(a,b)}catch(e){return null}finally{clearTimeout(to)}};
 const nw=t=>String(t||'').toLowerCase().replace(/[^a-z0-9가-힣?\s']/g,' ').replace(/\s+/g,' ').trim();
